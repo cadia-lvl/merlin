@@ -40,6 +40,8 @@
 # NOTES
 # still to consider: pygal, for HTML5 SVG plotting
 
+from builtins import range
+from builtins import object
 import math
 import string
 import os
@@ -118,7 +120,7 @@ class PlotWithData(object):
         l=-1
         reference_x=None
         # print "starting with self.data=",self.data
-        for series_name,data_points in self.data.items():
+        for series_name,data_points in list(self.data.items()):
             if l > 0:
                 assert l == len(data_points)
             else:
@@ -172,7 +174,7 @@ class MultipleSeriesPlot(PlotWithData):
         if ylim:
             pylab.ylim(ylim)
 
-        for series_name,data_points in self.data.items():
+        for series_name,data_points in list(self.data.items()):
             xpoints=numpy.asarray([seq[0] for seq in data_points])
             ypoints=numpy.asarray([seq[1] for seq in data_points])
             line, = splt.plot(xpoints, ypoints, '-', linewidth=2)

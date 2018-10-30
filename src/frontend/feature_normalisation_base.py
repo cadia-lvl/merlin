@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,6 +39,9 @@
 ################################################################################
 
 
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy
 from io_funcs.binary_io import BinaryIOCollection
 
@@ -82,7 +86,7 @@ class FeatureNormBase(object):
             mean_matrix = numpy.tile(mean_vector, (current_frame_number, 1))
             std_matrix = numpy.tile(std_vector, (current_frame_number, 1))
 
-            norm_features = (features - mean_matrix) / std_matrix
+            norm_features = old_div((features - mean_matrix), std_matrix)
 
             io_funcs.array_to_binary_file(norm_features, out_file_list[i])
 

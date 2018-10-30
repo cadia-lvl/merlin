@@ -43,6 +43,10 @@
 This script assumes c-version STRAIGHT which is not available to public. Please use your
 own vocoder to replace this script.
 '''
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import sys, os, subprocess, glob, subprocess
 #from utils import GlobalCfg
 
@@ -241,7 +245,7 @@ def wavgen_straight_type_vocoder(gen_dir, file_id_list, cfg, logger):
             gen_mu  = np.reshape(np.mean(gen_mgc, axis=0), (-1, 1))
             gen_std = np.reshape(np.std(gen_mgc, axis=0), (-1, 1))
 
-            local_gv = (ref_gv_std/gen_gv_std) * (gen_std - gen_gv_mean) + ref_gv_mean;
+            local_gv = (old_div(ref_gv_std,gen_gv_std)) * (gen_std - gen_gv_mean) + ref_gv_mean;
 
             enhanced_mgc = np.repeat(local_gv, frame_number, 1).T / np.repeat(gen_std, frame_number, 1).T * (gen_mgc - np.repeat(gen_mu, frame_number, 1).T) + np.repeat(gen_mu, frame_number, 1).T;
 
@@ -303,7 +307,7 @@ def wavgen_magphase(gen_dir, file_id_list, cfg, logger):
     import magphase as mp
 
     nfiles = len(file_id_list)
-    for nxf in xrange(nfiles):
+    for nxf in range(nfiles):
         filename_token = file_id_list[nxf]
         logger.info('Creating waveform for %4d of %4d: %s' % (nxf+1, nfiles, filename_token))
 

@@ -16,6 +16,8 @@
 
 """Class to handle file paths.
 """
+from builtins import str
+from builtins import object
 __author__ = 'pasindu@google.com (Pasindu De Silva)'
 
 import os

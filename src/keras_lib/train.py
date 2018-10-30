@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://github.com/CSTR-Edinburgh/merlin
@@ -37,6 +38,9 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import os, sys
 import random
 import numpy as np
@@ -252,7 +256,7 @@ class TrainKerasModels(kerasModels):
 
             valid_error += np.mean(np.sum((predictions - temp_valid_y) ** 2, axis=1))
 
-        valid_error = valid_error/valid_file_number
+        valid_error = old_div(valid_error,valid_file_number)
 
         return valid_error
 

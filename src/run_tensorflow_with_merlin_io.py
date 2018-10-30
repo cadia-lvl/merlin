@@ -37,6 +37,7 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import object
 import os
 import sys
 import time
@@ -181,12 +182,12 @@ class TensorflowClass(object):
 
         #### define the model ####
         if self.sequential_training:
-           utt_length=train_flen["utt2framenum"].values()
+           utt_length=list(train_flen["utt2framenum"].values())
            self.tensorflow_models.get_max_step(max(utt_length))
            self.tensorflow_models.define_sequence_model()
 
         elif self.encoder_decoder:
-             utt_length=train_flen["utt2framenum"].values()
+             utt_length=list(train_flen["utt2framenum"].values())
              super(Train_Encoder_Decoder_Models,self.encoder_decoder_models).__setattr__("max_step",max(utt_length))
              self.encoder_decoder_models.define_encoder_decoder()
         else:

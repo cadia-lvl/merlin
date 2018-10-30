@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,6 +39,9 @@
 ################################################################################
 
 
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy
 from io_funcs.binary_io import BinaryIOCollection
 import logging
@@ -138,7 +142,7 @@ class MinMaxNormalisation(object):
             target_min_matrix = numpy.tile(self.target_min_value, (frame_number, self.feature_dimension))
 
             fea_diff_matrix = numpy.tile(fea_max_min_diff, (frame_number, 1))
-            diff_norm_matrix = numpy.tile(target_max_min_diff, (frame_number, 1)) / fea_diff_matrix
+            diff_norm_matrix = old_div(numpy.tile(target_max_min_diff, (frame_number, 1)), fea_diff_matrix)
 
             norm_features = diff_norm_matrix * (features - fea_min_matrix) + target_min_matrix
 
@@ -184,7 +188,7 @@ class MinMaxNormalisation(object):
             target_min_matrix = numpy.tile(self.target_min_value, (frame_number, self.feature_dimension))
 
             fea_diff_matrix = numpy.tile(fea_max_min_diff, (frame_number, 1))
-            diff_norm_matrix = fea_diff_matrix / numpy.tile(target_max_min_diff, (frame_number, 1))
+            diff_norm_matrix = old_div(fea_diff_matrix, numpy.tile(target_max_min_diff, (frame_number, 1)))
             norm_features = diff_norm_matrix * (features - target_min_matrix) + fea_min_matrix
             io_funcs.array_to_binary_file(norm_features, out_file_list[i])
 
@@ -201,7 +205,7 @@ class MinMaxNormalisation(object):
             mean_matrix = numpy.tile(mean_vector, (current_frame_number, 1))
             std_matrix = numpy.tile(std_vector, (current_frame_number, 1))
 
-            norm_features = (features - mean_matrix) / std_matrix
+            norm_features = old_div((features - mean_matrix), std_matrix)
 
             io_funcs.array_to_binary_file(norm_features, out_file_list[i])
 

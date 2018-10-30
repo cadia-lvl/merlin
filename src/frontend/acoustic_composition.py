@@ -37,6 +37,7 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import range
 from io_funcs.binary_io import BinaryIOCollection
 import numpy
 import logging

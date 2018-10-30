@@ -1,3 +1,6 @@
+from __future__ import division
+from builtins import object
+from past.utils import old_div
 import numpy as np
 import theano
 import theano.tensor as T
@@ -35,7 +38,7 @@ class RecurrentOutputLayer(object):
         self.rnn_batch_training = rnn_batch_training
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_out)), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_out)), dtype=config.floatX)
         Wy_value = np.asarray(np.zeros((n_out, n_out)), dtype=config.floatX)
 
         # Input gate weights

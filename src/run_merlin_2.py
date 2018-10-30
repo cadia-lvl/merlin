@@ -1,4 +1,10 @@
-import cPickle
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from past.utils import old_div
+import pickle
 import gzip
 import os, sys, errno
 import time
@@ -17,7 +23,7 @@ import theano
 
 from utils.providers import ListDataProvider
 
-from frontend.label_normalisation import HTSLabelNormalisation, XMLLabelNormalisation
+from frontend.label_normalisation import HTSLabelNormalisation #, XMLLabelNormalisation
 from frontend.silence_remover import SilenceRemover
 from frontend.silence_remover import trim_silence
 from frontend.min_max_norm import MinMaxNormalisation
@@ -30,7 +36,7 @@ from frontend.label_composer import LabelComposer
 from frontend.label_modifier import HTSLabelModification
 from frontend.merge_features import MergeFeat
 
-from run_keras_with_merlin_io import kerasModels
+from run_keras_with_merlin_io import KerasClass
 # from frontend.mlpg_fast import MLParameterGenerationFast
 
 # from frontend.mlpg_fast_layer import MLParameterGenerationFastLayer
@@ -51,7 +57,7 @@ from io_funcs.binary_io import BinaryIOCollection
 from logplot.logging_plotting import LoggerPlotter, MultipleSeriesPlot, SingleWeightMatrixPlot
 import logging  # as logging
 import logging.config
-import StringIO
+import io
 
 
 def extract_file_id_list(file_list):
@@ -107,16 +113,16 @@ def visualize_dnn(dnn):
     # reference activation weights in layers
     W = list();
     layer_name = list()
-    for i in xrange(len(dnn.params)):
+    for i in range(len(dnn.params)):
         aa = dnn.params[i].get_value(borrow=True).T
-        print   aa.shape, aa.size
+        print(aa.shape, aa.size)
         if aa.size > aa.shape[0]:
             W.append(aa)
             layer_name.append(dnn.params[i].name)
 
     ## plot activation weights including input and output
     layer_num = len(W)
-    for i_layer in xrange(layer_num):
+    for i_layer in range(layer_num):
         fig_name = 'Activation weights W' + str(i_layer) + '_' + layer_name[i_layer]
         fig_title = 'Activation weights of W' + str(i_layer)
         xlabel = 'Neuron index of hidden layer ' + str(i_layer)
@@ -133,7 +139,7 @@ def visualize_dnn(dnn):
 def load_covariance(var_file_dict, out_dimension_dict):
     var = {}
     io_funcs = BinaryIOCollection()
-    for feature_name in var_file_dict.keys():
+    for feature_name in list(var_file_dict.keys()):
         var_values, dimension = io_funcs.load_binary_file_frame(var_file_dict[feature_name], 1)
 
         var_values = numpy.reshape(var_values, (out_dimension_dict[feature_name], 1))
@@ -199,7 +205,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     json_model_file = os.path.join(nnets_file_name + '.json')
     h5_model_file = os.path.join(nnets_file_name + '.h5')
 
-    buffer_size = int(buffer_size / batch_size) * batch_size
+    buffer_size = int(old_div(buffer_size, batch_size)) * batch_size
 
     ###################
     (train_x_file_list, train_y_file_list) = train_xy_file_list
@@ -290,7 +296,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     #    finetune_lr = 0.000125
     previous_finetune_lr = finetune_lr
 
-    print finetune_lr
+    print(finetune_lr)
 
     while epoch < training_epochs:
         epoch = epoch + 1
@@ -315,8 +321,8 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
             if sequential_training == True:
                 batch_size = temp_train_set_x.shape[0]
 
-            n_train_batches = temp_train_set_x.shape[0] / batch_size
-            for index in xrange(n_train_batches):
+            n_train_batches = old_div(temp_train_set_x.shape[0], batch_size)
+            for index in range(n_train_batches):
                 if cfg.backend == 'keras':
                     error = dnn.model.train_on_batch(temp_train_set_x[index * batch_size:(index + 1) * batch_size],
                                                      temp_train_set_y[index * batch_size:(index + 1) * batch_size])
@@ -384,7 +390,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
 
             # Store the model
             if cfg.backend == 'theano':
-                cPickle.dump(best_dnn_model, open(nnets_file_name, 'wb'))
+                pickle.dump(best_dnn_model, open(nnets_file_name, 'wb'))
             elif cfg.backend == 'keras':
                 # serialize model to JSON
                 model_json = dnn.model.to_json()
@@ -416,7 +422,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     #    cPickle.dump(best_dnn_model, open(nnets_file_name, 'wb'))
 
     logger.info(
-        'overall  training time: %.2fm validation error %f' % ((end_time - start_time) / 60., best_validation_loss))
+        'overall  training time: %.2fm validation error %f' % (old_div((end_time - start_time), 60.), best_validation_loss))
 
     if plot:
         plotlogger.save_plot('training convergence', title='Final training and validation error', xlabel='epochs',
@@ -431,16 +437,16 @@ def dnn_generation(valid_file_list, nnets_file_name, n_ins, n_outs, out_file_lis
 
     plotlogger = logging.getLogger("plotting")
 
-    dnn = cPickle.load(open(nnets_file_name, 'rb'))
+    dnn = pickle.load(open(nnets_file_name, 'rb'))
 
     file_number = len(valid_file_list)
 
-    for i in xrange(file_number):  # file_number
+    for i in range(file_number):  # file_number
         logger.info('generating %4d of %4d: %s' % (i + 1, file_number, valid_file_list[i]))
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         test_set_x = features.reshape((-1, n_ins))
 
         predicted_parameter = dnn.parameter_prediction(test_set_x)
@@ -460,18 +466,18 @@ def dnn_generation_lstm(valid_file_list, nnets_file_name, n_ins, n_outs, out_fil
 
     plotlogger = logging.getLogger("plotting")
 
-    dnn = cPickle.load(open(nnets_file_name, 'rb'))
+    dnn = pickle.load(open(nnets_file_name, 'rb'))
 
     visualize_dnn(dnn)
 
     file_number = len(valid_file_list)
 
-    for i in xrange(file_number):  # file_number
+    for i in range(file_number):  # file_number
         logger.info('generating %4d of %4d: %s' % (i + 1, file_number, valid_file_list[i]))
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         test_set_x = features.reshape((-1, n_ins))
 
         predicted_parameter = dnn.parameter_prediction_lstm(test_set_x)
@@ -493,16 +499,16 @@ def dnn_hidden_generation(valid_file_list, nnets_file_name, n_ins, n_outs, out_f
 
     plotlogger = logging.getLogger("plotting")
 
-    dnn = cPickle.load(open(nnets_file_name, 'rb'))
+    dnn = pickle.load(open(nnets_file_name, 'rb'))
 
     file_number = len(valid_file_list)
 
-    for i in xrange(file_number):
+    for i in range(file_number):
         logger.info('generating %4d of %4d: %s' % (i + 1, file_number, valid_file_list[i]))
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         features = features.reshape((-1, n_ins))
         temp_set_x = features.tolist()
         test_set_x = theano.shared(numpy.asarray(temp_set_x, dtype=theano.config.floatX))
@@ -556,7 +562,7 @@ def main_function(cfg):
 
     in_file_list_dict = {}
 
-    for feature_name in cfg.in_dir_dict.keys():
+    for feature_name in list(cfg.in_dir_dict.keys()):
         in_file_list_dict[feature_name] = prepare_file_path_list(file_id_list, cfg.in_dir_dict[feature_name],
                                                                  cfg.file_extension_dict[feature_name], False)
 
@@ -621,7 +627,7 @@ def main_function(cfg):
         in_label_align_file_list = prepare_file_path_list(test_id_list, cfg.in_label_align_dir, cfg.lab_ext, False)
         binary_label_file_list = prepare_file_path_list(test_id_list, binary_label_dir, cfg.lab_ext)
         nn_label_file_list = prepare_file_path_list(test_id_list, nn_label_dir, cfg.lab_ext)
-        nn_label_norm_file_list = prepare_file_path_list(test_id_list, nn_label_norm_dir, cfg.lab_ext)
+        nn_label_norm_file_list = prepare_file_path_list(test_id_list, nn_label_norm_dir, cfg.lab_exin_label_align_file_listt)
 
     if cfg.NORMLAB and (cfg.label_style == 'HTS'):
         # simple HTS labels
@@ -633,7 +639,7 @@ def main_function(cfg):
             out_feat_dir = os.path.join(data_dir, 'binary_label_' + suffix)
             out_feat_file_list = prepare_file_path_list(file_id_list, out_feat_dir, cfg.lab_ext)
             in_dim = label_normaliser.dimension
-            for new_feature, new_feature_dim in cfg.additional_features.iteritems():
+            for new_feature, new_feature_dim in cfg.additional_features.items():
                 new_feat_dir = os.path.join(data_dir, new_feature)
                 new_feat_file_list = prepare_file_path_list(file_id_list, new_feat_dir, '.' + new_feature)
 
@@ -679,7 +685,7 @@ def main_function(cfg):
         # create all the lists of these, ready to pass to the label composer
 
         in_label_align_file_list = {}
-        for label_style, label_style_required in label_composer.label_styles.iteritems():
+        for label_style, label_style_required in label_composer.label_styles.items():
             if label_style_required:
                 logger.info('labels of style %s are required - constructing file paths for them' % label_style)
                 if label_style == 'xpath':
@@ -696,7 +702,7 @@ def main_function(cfg):
             num_files = len(file_id_list)
             logger.info('the label styles required are %s' % label_composer.label_styles)
 
-            for i in xrange(num_files):
+            for i in range(num_files):
                 logger.info('making input label features for %4d of %4d' % (i + 1, num_files))
 
                 # iterate through the required label styles and open each corresponding label file
@@ -704,7 +710,7 @@ def main_function(cfg):
                 # a dictionary of file descriptors, pointing at the required files
                 required_labels = {}
 
-                for label_style, label_style_required in label_composer.label_styles.iteritems():
+                for label_style, label_style_required in label_composer.label_styles.items():
 
                     # the files will be a parallel set of files for a single utterance
                     # e.g., the XML tree and an HTS label file
@@ -718,7 +724,7 @@ def main_function(cfg):
                                            iterate_over_frames=cfg.iterate_over_frames)
 
                 # now close all opened files
-                for fd in required_labels.itervalues():
+                for fd in required_labels.values():
                     fd.close()
 
         # silence removal
@@ -766,7 +772,7 @@ def main_function(cfg):
         acc_win = cfg.acc_win  # [1.0, -2.0, 1.0]
 
         acoustic_worker = AcousticComposition(delta_win=delta_win, acc_win=acc_win)
-        if 'dur' in cfg.in_dir_dict.keys() and cfg.AcousticModel:
+        if 'dur' in list(cfg.in_dir_dict.keys()) and cfg.AcousticModel:
             acoustic_worker.make_equal_frames(dur_file_list, lf0_file_list, cfg.in_dimension_dict)
         acoustic_worker.prepare_nn_data(in_file_list_dict, nn_cmp_file_list, cfg.in_dimension_dict,
                                         cfg.out_dimension_dict)
@@ -797,7 +803,7 @@ def main_function(cfg):
         os.makedirs(var_dir)
 
     var_file_dict = {}
-    for feature_name in cfg.out_dimension_dict.keys():
+    for feature_name in list(cfg.out_dimension_dict.keys()):
         var_file_dict[feature_name] = os.path.join(var_dir,
                                                    feature_name + '_' + str(cfg.out_dimension_dict[feature_name]))
 
@@ -841,7 +847,7 @@ def main_function(cfg):
         logger.info('saved %s vectors to %s' % (cfg.output_feature_normalisation, norm_info_file))
 
         feature_index = 0
-        for feature_name in cfg.out_dimension_dict.keys():
+        for feature_name in list(cfg.out_dimension_dict.keys()):
             feature_std_vector = numpy.array(
                 global_std_vector[:, feature_index:feature_index + cfg.out_dimension_dict[feature_name]], 'float32')
 
@@ -943,7 +949,7 @@ def main_function(cfg):
 
         bottleneck_size = min(hidden_layers_sizes)
         bottleneck_index = 0
-        for i in xrange(len(hidden_layers_sizes)):
+        for i in range(len(hidden_layers_sizes)):
             if hidden_layers_sizes(i) == bottleneck_size:
                 bottleneck_index = i
 
@@ -1148,8 +1154,8 @@ def main_function(cfg):
                                                                       cfg.mgc_ext, cfg.mgc_dim)
             test_spectral_distortion = calculator.compute_distortion(test_file_id_list, ref_data_dir, gen_dir,
                                                                      cfg.mgc_ext, cfg.mgc_dim)
-            valid_spectral_distortion *= (10 / numpy.log(10)) * numpy.sqrt(2.0)  ##MCD
-            test_spectral_distortion *= (10 / numpy.log(10)) * numpy.sqrt(2.0)  ##MCD
+            valid_spectral_distortion *= (old_div(10, numpy.log(10))) * numpy.sqrt(2.0)  ##MCD
+            test_spectral_distortion *= (old_div(10, numpy.log(10))) * numpy.sqrt(2.0)  ##MCD
 
         if cfg.in_dimension_dict.has_key('bap'):
             if cfg.remove_silence_using_binary_labels:
@@ -1167,8 +1173,8 @@ def main_function(cfg):
                                                           cfg.bap_dim)
             test_bap_mse = calculator.compute_distortion(test_file_id_list, ref_data_dir, gen_dir, cfg.bap_ext,
                                                          cfg.bap_dim)
-            valid_bap_mse = valid_bap_mse / 10.0  ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
-            test_bap_mse = test_bap_mse / 10.0  ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
+            valid_bap_mse = old_div(valid_bap_mse, 10.0)  ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
+            test_bap_mse = old_div(test_bap_mse, 10.0)  ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
 
         if cfg.in_dimension_dict.has_key('lf0'):
             if cfg.remove_silence_using_binary_labels:
@@ -1246,22 +1252,22 @@ if __name__ == '__main__':
     logger.info('    device: ' + theano.config.device)
 
     # Check for the presence of git
-    ret = os.system('git status > /dev/null')
-    if ret == 0:
-        logger.info('  Git is available in the working directory:')
-        git_describe = \
-        subprocess.Popen(['git', 'describe', '--tags', '--always'], stdout=subprocess.PIPE).communicate()[0][:-1]
-        logger.info('    Merlin version: ' + git_describe)
-        git_branch = \
-        subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], stdout=subprocess.PIPE).communicate()[0][:-1]
-        logger.info('    branch: ' + git_branch)
-        git_diff = subprocess.Popen(['git', 'diff', '--name-status'], stdout=subprocess.PIPE).communicate()[0]
-        git_diff = git_diff.replace('\t', ' ').split('\n')
-        logger.info('    diff to Merlin version:')
-        for filediff in git_diff:
-            if len(filediff) > 0: logger.info('      ' + filediff)
-        logger.info('      (all diffs logged in ' + os.path.basename(cfg.log_file) + '.gitdiff' + ')')
-        os.system('git diff > ' + cfg.log_file + '.gitdiff')
+    # ret = os.system('git status > /dev/null')
+    # if ret == 0:
+    #     logger.info('  Git is available in the working directory:')
+    #     git_describe = \
+    #     subprocess.Popen(['git', 'describe', '--tags', '--always'], stdout=subprocess.PIPE).communicate()[0][:-1]
+    #     logger.info('    Merlin version: ' + git_describe)
+    #     git_branch = \
+    #     subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], stdout=subprocess.PIPE).communicate()[0][:-1]
+    #     logger.info('    branch: ' + git_branch)
+    #     git_diff = subprocess.Popen(['git', 'diff', '--name-status'], stdout=subprocess.PIPE).communicate()[0]
+    #     git_diff = git_diff.replace('\t', ' ').split('\n')
+    #     logger.info('    diff to Merlin version:')
+    #     for filediff in git_diff:
+    #         if len(filediff) > 0: logger.info('      ' + filediff)
+    #     logger.info('      (all diffs logged in ' + os.path.basename(cfg.log_file) + '.gitdiff' + ')')
+    #     os.system('git diff > ' + cfg.log_file + '.gitdiff')
 
     logger.info('Execution information:')
     logger.info('  HOSTNAME: ' + socket.getfqdn())
@@ -1278,7 +1284,7 @@ if __name__ == '__main__':
         cProfile.run('main_function(cfg)', 'mainstats')
 
         # create a stream for the profiler to write to
-        profiling_output = StringIO.StringIO()
+        profiling_output = io.StringIO()
         p = pstats.Stats('mainstats', stream=profiling_output)
 
         # print stats to that stream

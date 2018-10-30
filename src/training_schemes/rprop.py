@@ -37,6 +37,8 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import zip
+from builtins import range
 import numpy
 import theano
 import theano.tensor as T

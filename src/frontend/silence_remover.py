@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,6 +39,10 @@
 ################################################################################
 
 
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import sys, numpy, re, math
 from io_funcs.binary_io import BinaryIOCollection
 from multiprocessing.dummy import Pool as ThreadPool
@@ -78,7 +83,7 @@ class SilenceRemover(object):
 
             ori_cmp_data = io_funcs.load_binary_file(in_data_list[i], self.n_cmp)
 
-            frame_number = ori_cmp_data.size / self.n_cmp
+            frame_number = old_div(ori_cmp_data.size, self.n_cmp)
 
             if len(nonsilence_indices) == frame_number:
                 print('WARNING: no silence found!')
@@ -92,7 +97,7 @@ class SilenceRemover(object):
             io_funcs.array_to_binary_file(new_cmp_data, out_data_list[i])
 
         pool = ThreadPool()
-        pool.map(_remove_silence, range(file_number))
+        pool.map(_remove_silence, list(range(file_number)))
         pool.close()
         pool.join()
 
@@ -134,7 +139,7 @@ class SilenceRemover(object):
                     frame_number = manual_dur_data[ph_count]
                     ph_count = ph_count + 1
                 else:
-                    frame_number = int((end_time - start_time) / 50000)
+                    frame_number = int(old_div((end_time - start_time), 50000))
 
             label_binary_flag = self.check_silence_pattern(full_label)
 
@@ -173,7 +178,7 @@ class SilenceRemover(object):
                 full_label_length = len(full_label) - 3  # remove state information [k]
                 state_index = full_label[full_label_length + 1]
                 state_index = int(state_index) - 1
-                frame_number = int((end_time - start_time) / 50000)
+                frame_number = int(old_div((end_time - start_time), 50000))
 
             label_binary_flag = self.check_silence_pattern(full_label)
 
@@ -249,7 +254,7 @@ def trim_silence(in_list, out_list, in_dimension, label_list, label_dimension, \
                    (numpy.unique(silence_flag) == numpy.array([1]).all()), \
                 'dimension %s of %s contains values other than 0 and 1' % (silence_feature_index, infile)
         print('Remove %d%% of frames (%s frames) as silence... ' % (
-            100 * numpy.sum(silence_flag / float(len(silence_flag))), int(numpy.sum(silence_flag))))
+            100 * numpy.sum(old_div(silence_flag, float(len(silence_flag)))), int(numpy.sum(silence_flag))))
         non_silence_indices = numpy.nonzero(
             silence_flag == 0)  ## get the indices where silence_flag == 0 is True (i.e. != 0)
         if percent_to_keep != 0:
@@ -258,7 +263,7 @@ def trim_silence(in_list, out_list, in_dimension, label_list, label_dimension, \
             silence_indices = numpy.nonzero(silence_flag == 1)
             ## nonzero returns a tuple of arrays, one for each dimension of input array
             silence_indices = silence_indices[0]
-            every_nth = 100 / percent_to_keep
+            every_nth = old_div(100, percent_to_keep)
             silence_indices_to_keep = silence_indices[::every_nth]  ## every_nth used +as step value in slice
             ## -1 due to weird error with STRAIGHT features at line 144:
             ## IndexError: index 445 is out of bounds for axis 0 with size 445

@@ -38,6 +38,8 @@
 ################################################################################
 
 
+from builtins import range
+from builtins import object
 import logging
 import sys
 from multiprocessing.pool import ThreadPool as Pool
@@ -71,7 +73,7 @@ class LinguisticBase(object):
                 self.extract_linguistic_features(ori_file_list[i], output_file_list[i], label_type, dur_file_list[i])
 
         pool = Pool()
-        pool.map(_perform_normalisation, range(self.utterance_num))
+        pool.map(_perform_normalisation, list(range(self.utterance_num)))
         pool.close()
         pool.join()
 

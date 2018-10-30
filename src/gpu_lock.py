@@ -6,6 +6,8 @@ A simple discretionary locking system for /dev/nvidia devices.
 Iain Murray, November 2009, January 2010, January 2011.
 """
 
+from builtins import str
+from builtins import range
 import os, os.path
 
 _dev_prefix = '/dev/nvidia'

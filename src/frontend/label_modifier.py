@@ -1,4 +1,7 @@
 
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import numpy, re, sys
 from io_funcs.binary_io import BinaryIOCollection

@@ -1,4 +1,7 @@
+from __future__ import division
 
+from builtins import str
+from past.utils import old_div
 import pickle
 import gzip
 import os, sys, errno
@@ -96,8 +99,8 @@ def store_network(nnets_file_name, outdir):
     lab_norm_data = numpy.fromfile(label_norm_file, 'float32')
     labsize = numpy.shape(lab_norm_data)[0]
 
-    min_vect = lab_norm_data[:(labsize/2)]
-    max_vect = lab_norm_data[(labsize/2):]
+    min_vect = lab_norm_data[:(old_div(labsize,2))]
+    max_vect = lab_norm_data[(old_div(labsize,2)):]
 
     print(min_vect)
     print(max_vect)
@@ -116,8 +119,8 @@ def store_network(nnets_file_name, outdir):
     out_norm_data = numpy.fromfile(norm_info_file, 'float32')
     outsize = numpy.shape(out_norm_data)[0]
 
-    mean_vect = out_norm_data[:(outsize/2)]
-    std_vect = out_norm_data[(outsize/2):]
+    mean_vect = out_norm_data[:(old_div(outsize,2))]
+    std_vect = out_norm_data[(old_div(outsize,2)):]
 
     print(mean_vect)
     print(std_vect)

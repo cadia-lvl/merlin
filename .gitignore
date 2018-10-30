@@ -17,3 +17,6 @@ bin/
 
 # Pycharm IDE
 .idea/
+
+# .bak files (created in porting from py2-py3)
+*.bak

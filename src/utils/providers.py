@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -37,6 +38,9 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import os, sys
 import numpy, theano, random
 from io_funcs.binary_io import BinaryIOCollection
@@ -343,7 +347,7 @@ class ListDataProvider(object):
             current_index += frame_number
 
             if((self.file_index+1)%self.merge_size == 0):
-                num_of_samples = int(numpy.ceil(float(current_index)/float(self.seq_length)))
+                num_of_samples = int(numpy.ceil(old_div(float(current_index),float(self.seq_length))))
                 current_index = self.seq_length * num_of_samples
                 
             self.file_index += 1
@@ -364,7 +368,7 @@ class ListDataProvider(object):
             self.end_reading = True
             self.file_index = 0
         
-        num_of_samples = int(numpy.ceil(float(current_index)/float(self.seq_length)))
+        num_of_samples = int(numpy.ceil(old_div(float(current_index),float(self.seq_length))))
 
         temp_set_x = temp_set_x[0: num_of_samples*self.seq_length, ]
         temp_set_y = temp_set_y[0: num_of_samples*self.seq_length, ]
@@ -507,7 +511,7 @@ class ListDataProvider(object):
         ### input word feature matrix ###
         temp_set_dur_word_segments = numpy.zeros(num_words, dtype='int32')
         syl_bound = numpy.cumsum(temp_set_dur_word)
-        for indx in xrange(num_words):
+        for indx in range(num_words):
             temp_set_dur_word_segments[indx] = int(sum(temp_set_dur_syl[0: syl_bound[indx]]))
         temp_set_x = temp_set_word[temp_set_dur_word_segments-1]
         
@@ -547,7 +551,7 @@ class ListDataProvider(object):
         new_y_files_list = self.y_files_list[self.file_index].split(',')
         new_dur_files_list = self.dur_files_list[self.file_index].split(',')
 
-        for new_file_index in xrange(len(new_x_files_list)):
+        for new_file_index in range(len(new_x_files_list)):
             in_features, lab_frame_number = io_fun.load_binary_file_frame(new_x_files_list[new_file_index], self.n_ins)
             out_features, out_frame_number = io_fun.load_binary_file_frame(new_y_files_list[new_file_index], self.n_outs)
             
@@ -613,7 +617,7 @@ class ListDataProvider(object):
         new_y_files_list = self.y_files_list[self.file_index].split(',')
         new_dur_files_list = self.dur_files_list[self.file_index].split(',')
 
-        for new_file_index in xrange(len(new_x_files_list)):
+        for new_file_index in range(len(new_x_files_list)):
             in_features, lab_frame_number = io_fun.load_binary_file_frame(new_x_files_list[new_file_index], self.n_ins)
             out_features, out_frame_number = io_fun.load_binary_file_frame(new_y_files_list[new_file_index], self.n_outs)
             dur_features, dur_frame_number = io_fun.load_binary_file_frame(new_dur_files_list[new_file_index], 1)
@@ -649,7 +653,7 @@ class ListDataProvider(object):
             ### input word feature matrix ###
             temp_set_dur_word_segments = numpy.zeros(num_words, dtype='int32')
             syl_bound = numpy.cumsum(temp_set_dur_word)
-            for indx in xrange(num_words):
+            for indx in range(num_words):
                 temp_set_dur_word_segments[indx] = int(sum(temp_set_dur_syl[0: syl_bound[indx]]))
             temp_set_x = temp_set_word[temp_set_dur_word_segments-1]
         

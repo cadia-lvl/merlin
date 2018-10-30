@@ -39,6 +39,7 @@
 
 
 
+from builtins import object
 import numpy
 
 class   BinaryIOCollection(object):

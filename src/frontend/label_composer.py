@@ -38,6 +38,8 @@
 ################################################################################
 
 
+from builtins import next
+from builtins import object
 import logging
 import imp
 import numpy
@@ -116,11 +118,11 @@ class LabelComposer(object):
 
                     # get an arbitrary item as the reference and measure its dimensionality
                     try:
-                        l = len(next(iter(feature_specification['mapper'].values())))
+                        l = len(next(iter(list(feature_specification['mapper'].values()))))
                     except:
                         logger.critical('Empty mapper for feature %s' % feature_specification)
 
-                    for k,v in feature_specification['mapper'].items():
+                    for k,v in list(feature_specification['mapper'].items()):
                         # make sure all other entries have the same dimension
                         try:
                             assert len(v) == l

@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,6 +39,10 @@
 ################################################################################
 
 
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy, time, pickle, gzip, sys, os, copy
 
 import theano
@@ -51,12 +56,12 @@ class MixtureDensityOutputLayer(object):
     def __init__(self, rng, input, n_in, n_out, n_component):
         self.input = input
 
-        W_value = rng.normal(0.0, 1.0/numpy.sqrt(n_in), size=(n_in, n_out*n_component))
+        W_value = rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)), size=(n_in, n_out*n_component))
         self.W_mu = theano.shared(value=numpy.asarray(W_value, dtype=theano.config.floatX), name='W_mu', borrow=True)
 
         self.W_sigma = theano.shared(value=numpy.asarray(W_value.copy(), dtype=theano.config.floatX), name='W_sigma', borrow=True)
 
-        W_mix_value = rng.normal(0.0, 1.0/numpy.sqrt(n_in), size=(n_in, n_component))
+        W_mix_value = rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)), size=(n_in, n_component))
         self.W_mix = theano.shared(value=numpy.asarray(W_mix_value, dtype=theano.config.floatX), name='W_mix', borrow=True)
 
         self.mu = T.dot(self.input, self.W_mu)    #assume linear output for mean vectors
@@ -83,7 +88,7 @@ class LinearLayer(object):
 
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         if W is None:
-            W_value = rng.normal(0.0, 1.0/numpy.sqrt(n_in), size=(n_in, n_out))
+            W_value = rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)), size=(n_in, n_out))
             W = theano.shared(value=numpy.asarray(W_value, dtype=theano.config.floatX), name='W', borrow=True)
 
         if b is None:
@@ -123,7 +128,7 @@ class SigmoidLayer(object):
 
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         if W is None:
-            W_value = numpy.asarray(rng.normal(0.0, 1.0/numpy.sqrt(n_in),
+            W_value = numpy.asarray(rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)),
                       size=(n_in, n_out)), dtype=theano.config.floatX)
             W = theano.shared(value=W_value,
                               name='W', borrow=True)
@@ -171,7 +176,7 @@ class GeneralLayer(object):
 
         # randomly initialise the activation weights based on the input size, as advised by the 'tricks of neural network book'
         if W is None:
-            W_values = numpy.asarray(rng.normal(0.0, 1.0/numpy.sqrt(n_in),
+            W_values = numpy.asarray(rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)),
                     size=(n_in, n_out)), dtype=theano.config.floatX)
             W = theano.shared(value=W_values, name='W', borrow=True)
 
@@ -236,7 +241,7 @@ class HiddenLayer(object):
 
         if W is None:
 
-            W_values = numpy.asarray(rng.normal(0.0, 1.0/numpy.sqrt(n_in),
+            W_values = numpy.asarray(rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)),
                     size=(n_in, n_out)), dtype=theano.config.floatX)
 
             W = theano.shared(value=W_values, name='W', borrow=True)
@@ -268,7 +273,7 @@ class HiddenLayer(object):
             for i in range(1, pool_size):
                 cur = abs(lin_output[:,i:self.last_start+i+1:pool_size]) ** pnorm_order
                 self.tmp_output = self.tmp_output + cur
-            self.tmp_output = self.tmp_output ** (1.0 / pnorm_order)
+            self.tmp_output = self.tmp_output ** (old_div(1.0, pnorm_order))
             self.output = activation(self.tmp_output)
         else:
             self.output = (lin_output if activation is None
@@ -304,8 +309,8 @@ class dA(object):
 
         if not W:
             initial_W = numpy.asarray( numpy_rng.uniform(
-                      low  = -4*numpy.sqrt(6./(n_hidden+n_visible)),
-                      high =  4*numpy.sqrt(6./(n_hidden+n_visible)),
+                      low  = -4*numpy.sqrt(old_div(6.,(n_hidden+n_visible))),
+                      high =  4*numpy.sqrt(old_div(6.,(n_hidden+n_visible))),
                       size = (n_visible, n_hidden)),
                                        dtype = theano.config.floatX)
             W = theano.shared(value = initial_W, name ='W')
@@ -371,7 +376,7 @@ class dA(object):
         z       = self.get_reconstructed_input(y)
 
         L = T.sum ( (self.x-z) * (self.x-z), axis=1 )
-        cost = T.mean(L) / 2
+        cost = old_div(T.mean(L), 2)
 
         gparams = T.grad(cost, self.params)
         updates = {}

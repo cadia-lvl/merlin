@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://github.com/CSTR-Edinburgh/merlin
@@ -37,6 +38,8 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import range
+from past.utils import old_div
 import os, sys
 import time
 import random
@@ -160,7 +163,7 @@ def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1
 
         ### read file by file ###
         current_index = 0
-        for base_file_name, in_features in data.items():
+        for base_file_name, in_features in list(data.items()):
             frame_number = min(in_features.shape[0], max_length)
             if padding=="right":
                 temp_set[current_index, 0:frame_number, ] = in_features
@@ -191,10 +194,10 @@ def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1
             current_index += frame_number
 
             if (file_number+1)%merge_size == 0:
-                current_index = seq_length * (int(np.ceil(float(current_index)/float(seq_length))))
+                current_index = seq_length * (int(np.ceil(old_div(float(current_index),float(seq_length)))))
 
 
-        num_of_samples = int(np.ceil(float(current_index)/float(seq_length)))
+        num_of_samples = int(np.ceil(old_div(float(current_index),float(seq_length))))
 
         temp_set = temp_set[0: num_of_samples*seq_length, ]
         temp_set = temp_set.reshape(-1, seq_length, feat_dim)
@@ -219,13 +222,13 @@ def read_and_transform_data_from_file_list(in_file_list, dim, seq_length=200, me
         current_index += frame_number
 
         if (i+1)%merge_size == 0:
-            current_index = seq_length * (int(np.ceil(float(current_index)/float(seq_length))))
+            current_index = seq_length * (int(np.ceil(old_div(float(current_index),float(seq_length)))))
 
         drawProgressBar(i+1, num_of_utt)
 
     sys.stdout.write("\n")
 
-    num_of_samples = int(np.ceil(float(current_index)/float(seq_length)))
+    num_of_samples = int(np.ceil(old_div(float(current_index),float(seq_length))))
 
     temp_set = temp_set[0: num_of_samples*seq_length, ]
     temp_set = temp_set.reshape(num_of_samples, seq_length)
@@ -280,7 +283,7 @@ def shuffle_file_list(train_idx_list, shuffle_type=1, merge_size=5):
         return new_train_idx_list
 
 def get_stateful_data(train_x, train_y, batch_size):
-    num_of_batches = int(train_x.shape[0]/batch_size)
+    num_of_batches = int(old_div(train_x.shape[0],batch_size))
     train_x   = train_x[0: num_of_batches*batch_size, ]
     train_y   = train_y[0: num_of_batches*batch_size, ]
 
@@ -297,7 +300,7 @@ def get_stateful_input(test_x, seq_length, batch_size=1):
     [n_frames, n_dim] = test_x.shape
 
     num_of_samples = batch_size*seq_length
-    num_of_batches = int(n_frames/num_of_samples) + 1
+    num_of_batches = int(old_div(n_frames,num_of_samples)) + 1
     new_data_size  = num_of_batches*num_of_samples
 
     temp_test_x = np.zeros((new_data_size, n_dim))
@@ -307,19 +310,27 @@ def get_stateful_input(test_x, seq_length, batch_size=1):
 
     return temp_test_x
 
-def compute_norm_stats(data, stats_file, method="MVN"):
+def compute_norm_stats(data, stats_file, method="MVN", no_scaling_ind=()):
     #### normalize training data ####
     io_funcs = BinaryIOCollection()
 
     if method=="MVN":
         scaler = preprocessing.StandardScaler().fit(data)
+        if no_scaling_ind:
+            scaler.mean_[no_scaling_ind] = 0
+            scaler.scale_[no_scaling_ind] = 1
         norm_matrix = np.vstack((scaler.mean_, scaler.scale_))
     elif method=="MINMAX":
+        # TODO: this seems strange, if this is used, check the documentation:
+        # http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html
         scaler = preprocessing.MinMaxScaler(feature_range=(0.01, 0.99)).fit(data)
         norm_matrix = np.vstack((scaler.min_, scaler.scale_))
 
     print(norm_matrix.shape)
     io_funcs.array_to_binary_file(norm_matrix, stats_file)
+
+    # TODO: Why don't we make this a text file? Here it is
+    np.savetxt(stats_file + ".csv", norm_matrix, delimiter=",", fmt='%.2f', newline='\n')
 
     return scaler
 
@@ -349,7 +360,7 @@ def norm_data(data, scaler, sequential_training=True):
     if not sequential_training:
         data = scaler.transform(data)
     else:
-        for filename, features in data.items():
+        for filename, features in list(data.items()):
             data[filename] = scaler.transform(features)
 
 def denorm_data(data, scaler):
@@ -383,12 +394,12 @@ def read_file_list(file_name):
 
 def print_status(i, length):
     pr = int(float(i)/float(length)*100)
-    st = int(float(pr)/7)
+    st = int(old_div(float(pr),7))
     sys.stdout.write(("\r%d/%d ")%(i,length)+("[ %d"%pr+"% ] <<< ")+('='*st)+(''*(100-st)))
     sys.stdout.flush()
 
 def drawProgressBar(indx, length, barLen = 20):
-    percent = float(indx)/length
+    percent = old_div(float(indx),length)
     sys.stdout.write("\r")
     progress = ""
     for i in range(barLen):

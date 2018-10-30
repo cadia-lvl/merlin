@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,12 +39,18 @@
 ################################################################################
 
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import math
 import sys
 if sys.version_info.major >= 3:
     import configparser
 else:
-    import ConfigParser as configparser
+    import configparser as configparser
 import os
 import logging
 import io
@@ -170,8 +177,8 @@ class configuration(object):
 
         user_options = [
 
-            ('work_dir', self.work_dir, 'Paths','work'),
-            ('data_dir', self.data_dir, 'Paths','data'),
+            ('work_dir', self.work_dir, 'Paths', 'work'),
+            ('data_dir', self.data_dir, 'Paths', 'data'),
             ('inter_data_dir', self.inter_data_dir, 'Paths','inter_data'),
             ('plot_dir', '', 'Paths','plot'),
 
@@ -333,7 +340,6 @@ class configuration(object):
             ('TRAINMODEL', False, 'Processes', 'TRAINMODEL'),
             ('TESTMODEL' , False, 'Processes', 'TESTMODEL'),
 
-
             ('learning_rate'        , 0.0002                          , 'Architecture', 'learning_rate'),
             ('lr_decay'             , -1                              , 'Architecture', 'lr_decay'),
             ('l2_reg'               , 0.00001                      , 'Architecture', 'L2_regularization'),
@@ -432,7 +438,7 @@ class configuration(object):
             ('sr'               ,48000                 ,'Waveform'  , 'samplerate'),
             ('fl'               ,4096                  ,'Waveform'  , 'framelength'),
             ('shift'            ,1000 * 240 / 48000    ,'Waveform'  , 'frameshift'),
-            ('sp_dim'           ,(4096 / 2) + 1        ,'Waveform'  , 'sp_dim'),
+            ('sp_dim'           ,(old_div(4096, 2)) + 1        ,'Waveform'  , 'sp_dim'),
             # fw_alpha: 'Bark' or 'ERB' allowing deduction of alpha, or explicity float value (e.g. 0.77)
             ('fw_alpha'         ,0.77                  ,'Waveform'  , 'fw_alpha'),
             ('pf_coef'          ,1.4                   ,'Waveform'  , 'postfilter_coef'),
@@ -1114,7 +1120,7 @@ class configuration(object):
             try:
                 # pass that string as a filehandle
                 if sys.version_info.major < 3:
-                    config_string = unicode(config_string, "utf-8")
+                    config_string = str(config_string, "utf-8")
                 fh = io.StringIO(config_string)
                 logging.config.fileConfig(fh)
                 fh.close()

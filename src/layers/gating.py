@@ -1,7 +1,10 @@
+from __future__ import division
 
 ### refer Zhizheng and Simon's ICASSP'16 paper for more details
 ### http://www.zhizheng.org/papers/icassp2016_lstm.pdf
 
+from builtins import object
+from past.utils import old_div
 import numpy as np
 import theano
 import theano.tensor as T
@@ -37,8 +40,8 @@ class VanillaRNN(object):
         self.rnn_batch_training = rnn_batch_training
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
 
         # Input gate weights
         self.W_xi = theano.shared(value=Wx_value, name='W_xi')
@@ -122,12 +125,12 @@ class VanillaRNNDecoder(object):
         self.rnn_batch_training = rnn_batch_training
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wy_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_out), size=(n_out, n_h)), dtype=config.floatX)
-        Ux_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_out)), dtype=config.floatX)
-        Uh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_out)), dtype=config.floatX)
-        Uy_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_out), size=(n_out, n_out)), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wy_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_out)), size=(n_out, n_h)), dtype=config.floatX)
+        Ux_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_out)), dtype=config.floatX)
+        Uh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_out)), dtype=config.floatX)
+        Uy_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_out)), size=(n_out, n_out)), dtype=config.floatX)
 
         # Input gate weights
         self.W_xi = theano.shared(value=Wx_value, name='W_xi')
@@ -228,9 +231,9 @@ class LstmBase(object):
         self.rnn_batch_training = rnn_batch_training
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Input gate weights
         self.W_xi = theano.shared(value=Wx_value, name='W_xi')
@@ -238,9 +241,9 @@ class LstmBase(object):
         self.w_ci = theano.shared(value=Wc_value, name='w_ci')
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Forget gate weights
         self.W_xf = theano.shared(value=Wx_value, name='W_xf')
@@ -248,9 +251,9 @@ class LstmBase(object):
         self.w_cf = theano.shared(value=Wc_value, name='w_cf')
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Output gate weights
         self.W_xo = theano.shared(value=Wx_value, name='W_xo')
@@ -258,9 +261,9 @@ class LstmBase(object):
         self.w_co = theano.shared(value=Wc_value, name='w_co')
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Cell weights
         self.W_xc = theano.shared(value=Wx_value, name='W_xc')
@@ -354,10 +357,10 @@ class LstmDecoderBase(object):
         self.rnn_batch_training = rnn_batch_training
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
-        Wy_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_out), size=(n_out, n_h)), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
+        Wy_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_out)), size=(n_out, n_h)), dtype=config.floatX)
 
         # Input gate weights
         self.W_xi = theano.shared(value=Wx_value, name='W_xi')
@@ -366,15 +369,15 @@ class LstmDecoderBase(object):
         self.W_yi = theano.shared(value=Wy_value, name='W_yi')
 
         # random initialisation
-        Uh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_out)), dtype=config.floatX)
+        Uh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_out)), dtype=config.floatX)
 
         # Output gate weights
         self.U_ho = theano.shared(value=Uh_value, name='U_ho')
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Forget gate weights
         self.W_xf = theano.shared(value=Wx_value, name='W_xf')
@@ -382,9 +385,9 @@ class LstmDecoderBase(object):
         self.w_cf = theano.shared(value=Wc_value, name='w_cf')
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Output gate weights
         self.W_xo = theano.shared(value=Wx_value, name='W_xo')
@@ -392,9 +395,9 @@ class LstmDecoderBase(object):
         self.w_co = theano.shared(value=Wc_value, name='w_co')
 
         # random initialisation
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=config.floatX)
 
         # Cell weights
         self.W_xc = theano.shared(value=Wx_value, name='W_xc')
@@ -858,8 +861,8 @@ class BidirectionLstm(VanillaLstm):
 class RecurrentOutput(object):
     def __init__(self, rng, x, n_in, n_out, p=0.0, training=0, rnn_batch_training=False):
 
-        self.W_h = theano.shared(value=np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_out), size=(n_in, n_out)), dtype=config.floatX), name='W_h')
-        self.W_y = theano.shared(value=np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_out), size=(n_out, n_out)), dtype=config.floatX), name='W_y')
+        self.W_h = theano.shared(value=np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_out)), size=(n_in, n_out)), dtype=config.floatX), name='W_h')
+        self.W_y = theano.shared(value=np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_out)), size=(n_out, n_out)), dtype=config.floatX), name='W_y')
 
         self.b_y = theano.shared(value=np.zeros((n_out, ), dtype=config.floatX), name='b_y')
 
@@ -899,19 +902,19 @@ class GatedRecurrentUnit(object):
             else:
                 self.input =  (1-p) * x
 
-        self.W_xz = theano.shared(value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in),
+        self.W_xz = theano.shared(value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)),
                      size=(n_in, n_h)), dtype=config.floatX), name = 'W_xz')
-        self.W_hz = theano.shared(value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h),
+        self.W_hz = theano.shared(value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)),
                      size=(n_h, n_h)), dtype=config.floatX), name = 'W_hz')
 
-        self.W_xr = theano.shared(value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in),
+        self.W_xr = theano.shared(value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)),
                      size=(n_in, n_h)), dtype=config.floatX), name = 'W_xr')
-        self.W_hr = theano.shared(value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h),
+        self.W_hr = theano.shared(value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)),
                      size=(n_h, n_h)), dtype=config.floatX), name = 'W_hr')
 
-        self.W_xh = theano.shared(value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in),
+        self.W_xh = theano.shared(value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)),
                      size=(n_in, n_h)), dtype=config.floatX), name = 'W_xh')
-        self.W_hh = theano.shared(value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h),
+        self.W_hh = theano.shared(value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)),
                      size=(n_h, n_h)), dtype=config.floatX), name = 'W_hh')
 
         self.b_z = theano.shared(value = np.zeros((n_h, ), dtype = config.floatX), name = 'b_z')

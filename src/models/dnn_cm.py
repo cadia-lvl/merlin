@@ -1,6 +1,10 @@
 ###THEANO_FLAGS='cuda.root=/opt/cuda-5.0.35,mode=FAST_RUN,device=gpu0,floatX=float32,exception_verbosity=high' python dnn.py
 """
 """
+from __future__ import division
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import pickle
 import os
 import sys
@@ -41,7 +45,7 @@ class DNN(object):
                 input_size = n_ins
             else:
                 input_size = hidden_layer_sizes[i-1]
-            W_value = gnp.garray(numpy_rng.normal(0.0, 1.0/numpy.sqrt(input_size), size=(input_size, hidden_layer_sizes[i])))
+            W_value = gnp.garray(numpy_rng.normal(0.0, old_div(1.0,numpy.sqrt(input_size)), size=(input_size, hidden_layer_sizes[i])))
             b_value = gnp.zeros(hidden_layer_sizes[i])
             mW_value = gnp.zeros((input_size, hidden_layer_sizes[i]))
             mb_value = gnp.zeros(hidden_layer_sizes[i])
@@ -52,7 +56,7 @@ class DNN(object):
 
         #output layer
         input_size = hidden_layer_sizes[self.n_layers-1]
-        W_value = gnp.garray(numpy_rng.normal(0.0, 1.0/numpy.sqrt(input_size), size=(input_size, n_outs)))
+        W_value = gnp.garray(numpy_rng.normal(0.0, old_div(1.0,numpy.sqrt(input_size)), size=(input_size, n_outs)))
         b_value = gnp.zeros(n_outs)
         mW_value = gnp.zeros((input_size, n_outs))
         mb_value = gnp.zeros(n_outs)
@@ -102,7 +106,7 @@ class DNN(object):
 
     def gradient_update(self, batch_size, learning_rate, momentum):
 
-        multiplier = learning_rate / batch_size;
+        multiplier = old_div(learning_rate, batch_size);
         for i in range(len(self.W_grads)):
 
             if i >= len(self.W_grads) - 2:

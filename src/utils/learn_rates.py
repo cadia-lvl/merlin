@@ -38,6 +38,8 @@
 ################################################################################
 
 
+from builtins import range
+from builtins import object
 import numpy
 
 class LearningRate(object):

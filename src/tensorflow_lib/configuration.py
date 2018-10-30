@@ -37,7 +37,13 @@
 #  THIS SOFTWARE.
 ################################################################################
 
-import ConfigParser
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
+from builtins import str
+from builtins import range
+from builtins import object
+import configparser
 import logging
 import os
 import sys
@@ -97,7 +103,7 @@ class configuration(object):
 
         # load the config file
         try:
-            configparser = ConfigParser.ConfigParser()
+            configparser = configparser.ConfigParser()
             configparser.readfp(open(configFile))
             logger.debug('successfully read and parsed user configuration file %s' % configFile)
         except:
@@ -111,7 +117,7 @@ class configuration(object):
             try:
                 self.work_dir = configparser.get('Paths', 'work')
 
-            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+            except (configparser.NoSectionError, configparser.NoOptionError):
                 if self.work_dir == None:
                     logger.critical('Paths:work has no value!')
                     raise Exception
@@ -206,7 +212,7 @@ class configuration(object):
                 value = configparser.get(section,option)
                 user_or_default='user'
 
-            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+            except (configparser.NoSectionError, configparser.NoOptionError):
                 # use default value, if there is one
                 if (default == None) or \
                    (default == '')   or \

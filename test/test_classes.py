@@ -1,13 +1,16 @@
 # Test the classes used in Merlin pipeline
 # TODO run some very simple training on random data)
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import sys
 import os
 sys.path.append('../src')
 import errno
 
 import numpy as np
-import cPickle
+import pickle
 import logging
 
 def makedir(path):
@@ -24,8 +27,8 @@ def build_model(hidden_layer_type):
     # Always try to save it and reload it
     modelfile = 'log/model.pkl'
     makedir('log')
-    cPickle.dump(nnmodel, open(modelfile, 'wb'))
-    nnmodel = cPickle.load(open(modelfile, 'rb'))
+    pickle.dump(nnmodel, open(modelfile, 'wb'))
+    nnmodel = pickle.load(open(modelfile, 'rb'))
 
     logger.info('    OK')
 

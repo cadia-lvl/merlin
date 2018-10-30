@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://github.com/CSTR-Edinburgh/merlin
@@ -37,6 +38,9 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import pickle
 import gzip
 import os, sys, errno
@@ -199,7 +203,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     sequential_training = hyper_params['sequential_training']
     dropout_rate = hyper_params['dropout_rate']
 
-    buffer_size = int(buffer_size / batch_size) * batch_size
+    buffer_size = int(old_div(buffer_size, batch_size)) * batch_size
 
     ###################
     (train_x_file_list, train_y_file_list) = train_xy_file_list
@@ -492,7 +496,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
 
     end_time = time.time()
 
-    logger.info('overall  training time: %.2fm validation error %f' % ((end_time - start_time) / 60., best_validation_loss))
+    logger.info('overall  training time: %.2fm validation error %f' % (old_div((end_time - start_time), 60.), best_validation_loss))
 
     if plot:
         plotlogger.save_plot('training convergence',title='Final training and validation error',xlabel='epochs',ylabel='error')
@@ -546,12 +550,12 @@ def dnn_generation_S2S(valid_file_list, valid_dur_file_list, nnets_file_name, n_
     file_number = len(valid_file_list)
 
     label_normaliser = HTSLabelNormalisation(question_file_name=cfg.question_file_name, subphone_feats="coarse_coding")
-    for i in xrange(file_number):  #file_number
+    for i in range(file_number):  #file_number
         logger.info('generating %4d of %4d: %s' % (i+1,file_number,valid_file_list[i]) )
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         test_set_x = features.reshape((-1, n_ins))
 
         fid_lab = open(valid_dur_file_list[i], 'rb')
@@ -585,12 +589,12 @@ def dnn_generation_S2SML(valid_file_list, valid_dur_file_list, nnets_file_name, 
     file_number = len(valid_file_list)
 
     label_normaliser = HTSLabelNormalisation(question_file_name=cfg.question_file_name, subphone_feats="coarse_coding")
-    for i in xrange(file_number):  #file_number
+    for i in range(file_number):  #file_number
         logger.info('generating %4d of %4d: %s' % (i+1,file_number,valid_file_list[i]) )
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         test_set_MLU = features.reshape((-1, n_ins))
 
         fid_lab = open(valid_dur_file_list[i], 'rb')
@@ -625,7 +629,7 @@ def dnn_generation_S2SML(valid_file_list, valid_dur_file_list, nnets_file_name, 
         ### input word feature matrix ###
         test_set_dur_word_segments = numpy.zeros(num_words, dtype='int32')
         syl_bound = numpy.cumsum(test_set_dur_word)
-        for indx in xrange(num_words):
+        for indx in range(num_words):
             test_set_dur_word_segments[indx] = int(sum(test_set_dur_syl[0: syl_bound[indx]]))
         test_set_x = test_set_word[test_set_dur_word_segments-1]
 
@@ -776,7 +780,7 @@ def main_function(cfg):
             out_feat_file_list = file_paths.out_feat_file_list
             in_dim = label_normaliser.dimension
 
-            for new_feature, new_feature_dim in cfg.additional_features.items():
+            for new_feature, new_feature_dim in list(cfg.additional_features.items()):
                 new_feat_dir  = os.path.join(data_dir, new_feature)
                 new_feat_file_list = prepare_file_path_list(file_id_list, new_feat_dir, '.'+new_feature)
 
@@ -891,7 +895,7 @@ def main_function(cfg):
                     dimension_index = 0
                     recorded_vuv = False
                     vuv_dimension = None
-                    for feature_name in cfg.out_dimension_dict.keys():
+                    for feature_name in list(cfg.out_dimension_dict.keys()):
                         if feature_name != 'vuv':
                             stream_start_index[feature_name] = dimension_index
                         else:
@@ -1246,8 +1250,8 @@ def main_function(cfg):
                 ref_data_dir = os.path.join(data_dir, 'mgc')
             valid_spectral_distortion = calculator.compute_distortion(valid_file_id_list, ref_data_dir, gen_dir, cfg.mgc_ext, cfg.mgc_dim)
             test_spectral_distortion  = calculator.compute_distortion(test_file_id_list , ref_data_dir, gen_dir, cfg.mgc_ext, cfg.mgc_dim)
-            valid_spectral_distortion *= (10 /numpy.log(10)) * numpy.sqrt(2.0)    ##MCD
-            test_spectral_distortion  *= (10 /numpy.log(10)) * numpy.sqrt(2.0)    ##MCD
+            valid_spectral_distortion *= (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)    ##MCD
+            test_spectral_distortion  *= (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)    ##MCD
 
 
         if 'bap' in cfg.in_dimension_dict:
@@ -1262,8 +1266,8 @@ def main_function(cfg):
                 ref_data_dir = os.path.join(data_dir, 'bap')
             valid_bap_mse = calculator.compute_distortion(valid_file_id_list, ref_data_dir, gen_dir, cfg.bap_ext, cfg.bap_dim)
             test_bap_mse  = calculator.compute_distortion(test_file_id_list , ref_data_dir, gen_dir, cfg.bap_ext, cfg.bap_dim)
-            valid_bap_mse = valid_bap_mse / 10.0    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
-            test_bap_mse  = test_bap_mse / 10.0    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
+            valid_bap_mse = old_div(valid_bap_mse, 10.0)    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
+            test_bap_mse  = old_div(test_bap_mse, 10.0)    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
 
         if 'lf0' in cfg.in_dimension_dict:
             if cfg.remove_silence_using_binary_labels:

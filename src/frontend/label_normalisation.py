@@ -1,4 +1,8 @@
+from __future__ import division
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import os
 import numpy, re, sys
 from multiprocessing import Pool
@@ -206,7 +210,7 @@ class HTSLabelNormalisation(LabelNormalisation):
             state_index = int(state_index) - 1
             current_phone = full_label[full_label.index('-') + 1:full_label.index('+')]
 
-            frame_number = int(end_time/50000) - int(start_time/50000)
+            frame_number = int(old_div(end_time,50000)) - int(old_div(start_time,50000))
 
             if state_index == 1:
                 phone_duration = frame_number
@@ -214,7 +218,7 @@ class HTSLabelNormalisation(LabelNormalisation):
                 for i in range(state_number - 1):
                     line = utt_labels[current_index + i + 1].strip()
                     temp_list = re.split('\s+', line)
-                    phone_duration += int((int(temp_list[1]) - int(temp_list[0]))/50000)
+                    phone_duration += int(old_div((int(temp_list[1]) - int(temp_list[0])),50000))
                 
                 syllable_duration+=phone_duration
                 word_duration+=phone_duration
@@ -295,7 +299,7 @@ class HTSLabelNormalisation(LabelNormalisation):
             current_index += 1
 
         if feat_size == "MLU":
-            for seg_indx in xrange(len(MLU_dur)):
+            for seg_indx in range(len(MLU_dur)):
                 seg_len = len(MLU_dur[seg_indx])
                 current_block_array = numpy.reshape(numpy.array(MLU_dur[seg_indx]), (-1, 1))
                 dur_feature_matrix[dur_feature_index:dur_feature_index+seg_len, ] = current_block_array
@@ -336,7 +340,7 @@ class HTSLabelNormalisation(LabelNormalisation):
 
             full_label = temp_list[2]
 
-            frame_number = int(end_time/50000) - int(start_time/50000)
+            frame_number = int(old_div(end_time,50000)) - int(old_div(start_time,50000))
 
             phone_duration = frame_number
 
@@ -409,7 +413,7 @@ class HTSLabelNormalisation(LabelNormalisation):
                 if dur_file_name:
                     frame_number = manual_dur_data[ph_count]
                 else:
-                    frame_number = int(end_time/50000) - int(start_time/50000)
+                    frame_number = int(old_div(end_time,50000)) - int(old_div(start_time,50000))
 
                 if self.subphone_feats == "coarse_coding":
                     cc_feat_matrix = self.extract_coarse_coding_features_relative(frame_number)
@@ -429,8 +433,8 @@ class HTSLabelNormalisation(LabelNormalisation):
 
                     if self.subphone_feats == 'minimal_phoneme':
                         ## features which distinguish frame position in phoneme
-                        current_block_binary_array[i, self.dict_size] = float(i+1)/float(frame_number) # fraction through phone forwards
-                        current_block_binary_array[i, self.dict_size+1] = float(frame_number - i)/float(frame_number) # fraction through phone backwards
+                        current_block_binary_array[i, self.dict_size] = old_div(float(i+1),float(frame_number)) # fraction through phone forwards
+                        current_block_binary_array[i, self.dict_size+1] = old_div(float(frame_number - i),float(frame_number)) # fraction through phone backwards
                         current_block_binary_array[i, self.dict_size+2] = float(frame_number) # phone duration
 
                     elif self.subphone_feats == 'coarse_coding':
@@ -458,7 +462,7 @@ class HTSLabelNormalisation(LabelNormalisation):
 
         logger.info('loaded %s, %3d labels' % (file_name, ph_count) )
         logger.debug('made label matrix of %d frames x %d labels' % label_feature_matrix.shape )
-        return  label_feature_matrix
+        return label_feature_matrix
 
 
     def load_labels_with_state_alignment(self, file_name):
@@ -504,7 +508,7 @@ class HTSLabelNormalisation(LabelNormalisation):
             else:
                 start_time = int(temp_list[0])
                 end_time = int(temp_list[1])
-                frame_number = int(end_time/50000) - int(start_time/50000)
+                frame_number = int(old_div(end_time,50000)) - int(old_div(start_time,50000))
                 full_label = temp_list[2]
             
                 full_label_length = len(full_label) - 3  # remove state information [k]
@@ -532,7 +536,7 @@ class HTSLabelNormalisation(LabelNormalisation):
                     for i in range(state_number - 1):
                         line = utt_labels[current_index + i + 1].strip()
                         temp_list = re.split('\s+', line)
-                        phone_duration += int((int(temp_list[1]) - int(temp_list[0]))/50000)
+                        phone_duration += int(old_div((int(temp_list[1]) - int(temp_list[0])),50000))
 
                     if self.subphone_feats == "coarse_coding":
                         cc_feat_matrix = self.extract_coarse_coding_features_relative(phone_duration)
@@ -544,16 +548,16 @@ class HTSLabelNormalisation(LabelNormalisation):
 
                     if self.subphone_feats == 'full':
                         ## Zhizheng's original 9 subphone features:
-                        current_block_binary_array[i, self.dict_size] = float(i+1) / float(frame_number)   ## fraction through state (forwards)
-                        current_block_binary_array[i, self.dict_size+1] = float(frame_number - i) / float(frame_number)  ## fraction through state (backwards)
+                        current_block_binary_array[i, self.dict_size] = old_div(float(i+1), float(frame_number))   ## fraction through state (forwards)
+                        current_block_binary_array[i, self.dict_size+1] = old_div(float(frame_number - i), float(frame_number))  ## fraction through state (backwards)
                         current_block_binary_array[i, self.dict_size+2] = float(frame_number)  ## length of state in frames
                         current_block_binary_array[i, self.dict_size+3] = float(state_index)   ## state index (counting forwards)
                         current_block_binary_array[i, self.dict_size+4] = float(state_index_backward) ## state index (counting backwards)
 
                         current_block_binary_array[i, self.dict_size+5] = float(phone_duration)   ## length of phone in frames
-                        current_block_binary_array[i, self.dict_size+6] = float(frame_number) / float(phone_duration)   ## fraction of the phone made up by current state
-                        current_block_binary_array[i, self.dict_size+7] = float(phone_duration - i - state_duration_base) / float(phone_duration) ## fraction through phone (backwards)
-                        current_block_binary_array[i, self.dict_size+8] = float(state_duration_base + i + 1) / float(phone_duration)  ## fraction through phone (forwards)
+                        current_block_binary_array[i, self.dict_size+6] = old_div(float(frame_number), float(phone_duration))   ## fraction of the phone made up by current state
+                        current_block_binary_array[i, self.dict_size+7] = old_div(float(phone_duration - i - state_duration_base), float(phone_duration)) ## fraction through phone (backwards)
+                        current_block_binary_array[i, self.dict_size+8] = old_div(float(state_duration_base + i + 1), float(phone_duration))  ## fraction through phone (forwards)
 
                     elif self.subphone_feats == 'state_only':
                         ## features which only distinguish state:
@@ -562,12 +566,12 @@ class HTSLabelNormalisation(LabelNormalisation):
                     elif self.subphone_feats == 'frame_only':
                         ## features which distinguish frame position in phoneme:
                         current_frame_number += 1
-                        current_block_binary_array[i, self.dict_size] = float(current_frame_number) / float(phone_duration)   ## fraction through phone (counting forwards)
+                        current_block_binary_array[i, self.dict_size] = old_div(float(current_frame_number), float(phone_duration))   ## fraction through phone (counting forwards)
 
                     elif self.subphone_feats == 'uniform_state':
                         ## features which distinguish frame position in phoneme:
                         current_frame_number += 1
-                        current_block_binary_array[i, self.dict_size] = float(current_frame_number) / float(phone_duration)   ## fraction through phone (counting forwards)
+                        current_block_binary_array[i, self.dict_size] = old_div(float(current_frame_number), float(phone_duration))   ## fraction through phone (counting forwards)
                         new_state_index = max(1, round(float(current_frame_number)/float(phone_duration)*5))
                         current_block_binary_array[i, self.dict_size+1] = float(new_state_index)   ## state index (counting forwards)
 
@@ -581,7 +585,7 @@ class HTSLabelNormalisation(LabelNormalisation):
 
                     elif self.subphone_feats == 'minimal_frame':
                         ## features which distinguish state and minimally frame position in state:
-                        current_block_binary_array[i, self.dict_size] = float(i+1) / float(frame_number)   ## fraction through state (forwards)
+                        current_block_binary_array[i, self.dict_size] = old_div(float(i+1), float(frame_number))   ## fraction through state (forwards)
                         current_block_binary_array[i, self.dict_size+1] = float(state_index)   ## state index (counting forwards)
                     elif self.subphone_feats == 'none':
                         pass
@@ -639,20 +643,20 @@ class HTSLabelNormalisation(LabelNormalisation):
                 state_number = 5 # hard coded here 
                 phone_duration = sum(dur_data[i, :])
                 state_duration_base = 0
-                for state_index in xrange(1, state_number+1):
+                for state_index in range(1, state_number+1):
                     state_index_backward = (state_number - state_index) + 1
                     frame_number = int(dur_data[i][state_index-1])
-                    for j in xrange(frame_number):
-                        duration_feature_array[frame_index, 0] = float(j+1) / float(frame_number)   ## fraction through state (forwards)
-                        duration_feature_array[frame_index, 1] = float(frame_number - j) / float(frame_number)  ## fraction through state (backwards)
+                    for j in range(frame_number):
+                        duration_feature_array[frame_index, 0] = old_div(float(j+1), float(frame_number))   ## fraction through state (forwards)
+                        duration_feature_array[frame_index, 1] = old_div(float(frame_number - j), float(frame_number))  ## fraction through state (backwards)
                         duration_feature_array[frame_index, 2] = float(frame_number)  ## length of state in frames
                         duration_feature_array[frame_index, 3] = float(state_index)   ## state index (counting forwards)
                         duration_feature_array[frame_index, 4] = float(state_index_backward) ## state index (counting backwards)
     
                         duration_feature_array[frame_index, 5] = float(phone_duration)   ## length of phone in frames
-                        duration_feature_array[frame_index, 6] = float(frame_number) / float(phone_duration)   ## fraction of the phone made up by current state
-                        duration_feature_array[frame_index, 7] = float(phone_duration - j - state_duration_base) / float(phone_duration) ## fraction through phone (forwards)
-                        duration_feature_array[frame_index, 8] = float(state_duration_base + j + 1) / float(phone_duration)  ## fraction through phone (backwards)
+                        duration_feature_array[frame_index, 6] = old_div(float(frame_number), float(phone_duration))   ## fraction of the phone made up by current state
+                        duration_feature_array[frame_index, 7] = old_div(float(phone_duration - j - state_duration_base), float(phone_duration)) ## fraction through phone (forwards)
+                        duration_feature_array[frame_index, 8] = old_div(float(state_duration_base + j + 1), float(phone_duration))  ## fraction through phone (backwards)
                         frame_index+=1
                     
                     state_duration_base += frame_number
@@ -687,7 +691,7 @@ class HTSLabelNormalisation(LabelNormalisation):
         cc_feat_matrix = numpy.zeros((dur, 3))
 
         for i in range(dur):
-            rel_indx = int((200/float(dur))*i)
+            rel_indx = int((old_div(200,float(dur)))*i)
             cc_feat_matrix[i,0] = self.cc_features[0, 300+rel_indx]
             cc_feat_matrix[i,1] = self.cc_features[1, 200+rel_indx]
             cc_feat_matrix[i,2] = self.cc_features[2, 100+rel_indx]
@@ -709,10 +713,10 @@ class HTSLabelNormalisation(LabelNormalisation):
         x3 = numpy.linspace(1, 2*dur-1, npoints3)
 
         mu1 = 0
-        mu2 = (1+dur)/2
+        mu2 = old_div((1+dur),2)
         mu3 = dur
         variance = 1
-        sigma = variance*((dur/10)+2)
+        sigma = variance*((old_div(dur,10))+2)
         sigma1 = sigma
         sigma2 = sigma-1
         sigma3 = sigma
@@ -727,7 +731,7 @@ class HTSLabelNormalisation(LabelNormalisation):
             cc_feat_matrix[i,2] = y3[i*10]
 
         for i in range(3):
-            cc_feat_matrix[:,i] = cc_feat_matrix[:,i]/max(cc_feat_matrix[:,i])
+            cc_feat_matrix[:,i] = old_div(cc_feat_matrix[:,i],max(cc_feat_matrix[:,i]))
 
         return cc_feat_matrix
 

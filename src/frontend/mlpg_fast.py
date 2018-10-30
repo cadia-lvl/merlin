@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -39,6 +40,9 @@
 
 
 
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy as np
 from numpy import dot
 import logging
@@ -58,7 +62,7 @@ class MLParameterGenerationFast(object):
         self.delta_win = delta_win
         self.acc_win   = acc_win
         ###assume the delta and acc windows have the same length
-        self.win_length = int(len(delta_win)/2)
+        self.win_length = int(old_div(len(delta_win),2))
 
     def build_win_mats(self, windows, frames):
         win_mats = []
@@ -124,8 +128,8 @@ class MLParameterGenerationFast(object):
             var_frames[frame_number-1, 1] = 100000000000;
             var_frames[frame_number-1, 2] = 100000000000;
 
-            b_frames = mu_frames / var_frames
-            tau_frames = 1.0 / var_frames
+            b_frames = old_div(mu_frames, var_frames)
+            tau_frames = old_div(1.0, var_frames)
 
             b, prec = self.build_poe(b_frames, tau_frames, win_mats)
             mean_traj = bla.solveh(prec, b)

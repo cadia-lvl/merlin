@@ -1,3 +1,6 @@
+from builtins import map
+from builtins import str
+from builtins import range
 import os
 import sys
 import random
@@ -96,7 +99,7 @@ def data_prep(cfg, label_normaliser):
             out_feat_dir = os.path.join(data_dir, 'binary_label_' + suffix)
             out_feat_file_list = prepare_file_path_list(file_id_list, out_feat_dir, cfg.lab_ext)
             in_dim = label_normaliser.dimension
-            for new_feature, new_feature_dim in cfg.additional_features.iteritems():
+            for new_feature, new_feature_dim in cfg.additional_features.items():
                 new_feat_dir = os.path.join(data_dir, new_feature)
                 new_feat_file_list = prepare_file_path_list(file_id_list, new_feat_dir, '.' + new_feature)
 
@@ -148,7 +151,7 @@ def data_prep(cfg, label_normaliser):
         acc_win = cfg.acc_win  # [1.0, -2.0, 1.0]
 
         acoustic_worker = AcousticComposition(delta_win=delta_win, acc_win=acc_win)
-        if 'dur' in cfg.in_dir_dict.keys() and cfg.AcousticModel:
+        if 'dur' in list(cfg.in_dir_dict.keys()) and cfg.AcousticModel:
             acoustic_worker.make_equal_frames(dur_file_list, lf0_file_list, cfg.in_dimension_dict)
         acoustic_worker.prepare_nn_data(in_file_list_dict, nn_cmp_file_list, cfg.in_dimension_dict,
                                         cfg.out_dimension_dict)
@@ -328,8 +331,8 @@ if __name__ == "__main__":
             if batch_size == 1:
 
                 # train each sentence as a batch (I think this is the better way: we do not want a stateful model)
-                train_index_list = range(train_file_number)
-                valid_index_list = range(valid_file_number)
+                train_index_list = list(range(train_file_number))
+                valid_index_list = list(range(valid_file_number))
                 training_loss = np.zeros((num_epochs,))
                 validation_loss = np.zeros((num_epochs,))
 
@@ -337,7 +340,7 @@ if __name__ == "__main__":
                     random.seed(271638)
                     random.shuffle(train_index_list)
 
-                for epoch_num in xrange(num_epochs):
+                for epoch_num in range(num_epochs):
 
                     print 'Epoch: %d/%d ' % (epoch_num + 1, num_epochs)
                     utt_count = -1
@@ -370,11 +373,11 @@ if __name__ == "__main__":
 
             else:
                 # if batch size more than 1
-                train_count_list = train_flen.keys()
+                train_count_list = list(train_flen.keys())
                 if shuffle_data:
                     random.seed(271638)
                     random.shuffle(train_count_list)
-                for epoch_num in xrange(num_epochs):
+                for epoch_num in range(num_epochs):
                     print 'Epoch: %d/%d ' % (epoch_num + 1, num_epochs)
                     utt_count = -1
                     for frame_number in train_count_list:
@@ -382,7 +385,7 @@ if __name__ == "__main__":
                         num_of_files = len(batch_file_list)
                         temp_train_x = np.zeros((num_of_files, frame_number, inp_dim))
                         temp_train_y = np.zeros((num_of_files, frame_number, out_dim))
-                        for file_index in xrange(num_of_files):
+                        for file_index in range(num_of_files):
                             temp_train_x[file_index,] = train_x[batch_file_list[file_index]]
                             temp_train_y[file_index,] = train_y[batch_file_list[file_index]]
                             history = dnn.model.fit(temp_train_x, temp_train_y,

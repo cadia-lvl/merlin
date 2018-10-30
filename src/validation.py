@@ -18,6 +18,7 @@
 """Script to validate Merlin setup.
 """
 
+from builtins import object
 __author__ = 'pasindu@google.com (Pasindu De Silva)'
 
 import logging

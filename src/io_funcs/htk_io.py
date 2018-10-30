@@ -19,6 +19,7 @@ TODO: support for options: _C, H_IREFC
 
 '''
 
+from builtins import object
 import io, os, sys, numpy, struct, logging
 
 class HTK_Parm_IO(object):

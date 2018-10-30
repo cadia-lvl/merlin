@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,6 +39,8 @@
 ################################################################################
 
 
+from builtins import object
+from past.utils import old_div
 import sys, numpy
 from io_funcs.binary_io import BinaryIOCollection
 import  logging
@@ -82,10 +85,10 @@ class   DistortionComputation(object):
             reference_lf0[reference_vuv<0.5] = 0.0
 #            print   reference_vuv
             temp_distortion = self.compute_mse(reference_mgc[:, 1:self.mgc_dim], generation_mgc[:, 1:self.mgc_dim])
-            self.distortion += temp_distortion * (10 /numpy.log(10)) * numpy.sqrt(2.0)
+            self.distortion += temp_distortion * (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)
 
             temp_bap_distortion = self.compute_mse(reference_bap, generation_bap)
-            self.bap_distortion += temp_bap_distortion * (10 /numpy.log(10)) * numpy.sqrt(2.0)
+            self.bap_distortion += temp_bap_distortion * (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)
 
             temp_f0_distortion, temp_vuv_error, voiced_frame_number = self.compute_f0_mse(reference_lf0, generation_lf0)
             self.f0_distortion += temp_f0_distortion
@@ -136,7 +139,7 @@ class   DistortionComputation(object):
         fid_lab = open(file_name, 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        frame_number = features.size / dimension
+        frame_number = old_div(features.size, dimension)
         features = features[:(dimension * frame_number)]
         features = features.reshape((-1, dimension))
 
@@ -262,7 +265,7 @@ class IndividualDistortionComp(object):
         diff = (ref_data - gen_data) ** 2
         total_frame_number = ref_data.size
         sum_diff = numpy.sum(diff)
-        rmse = numpy.sqrt(sum_diff/total_frame_number)
+        rmse = numpy.sqrt(old_div(sum_diff,total_frame_number))
 
         return rmse
 

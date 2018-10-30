@@ -38,6 +38,10 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import tensorflow as tf
 import numpy as np
 import random, os ,sys
@@ -74,9 +78,9 @@ class TrainTensorflowModels(TensorflowModels):
            self.saver=tf.train.Saver()
            with tf.Session() as sess:
              init.run();summary_writer=tf.summary.FileWriter(os.path.join(self.ckpt_dir,"losslog"),sess.graph)
-             for epoch in xrange(num_of_epochs):
+             for epoch in range(num_of_epochs):
                  L=1;overall_loss=0
-                 for iteration in range(int(train_x.shape[0]/batch_size)+1):
+                 for iteration in range(int(old_div(train_x.shape[0],batch_size))+1):
                     if (iteration+1)*batch_size>train_x.shape[0]:
                         x_batch,y_batch=train_x[iteration*batch_size:],train_y[iteration*batch_size:]
                         if x_batch!=[]:
@@ -96,19 +100,19 @@ class TrainTensorflowModels(TensorflowModels):
             #        training_loss=loss.eval(feed_dict={input_layer:train_x,output_data:train_y,is_training_drop:False,is_training_batch:False})
             #     else:
             #        training_loss=loss.eval(feed_dict={input_layer:train_x,output_data:train_y,is_training_batch:False})
-                 print "Epoch ",epoch+1, "Finishes","Training loss:",overall_loss/L
+                 print "Epoch ",epoch+1, "Finishes","Training loss:",old_div(overall_loss,L)
              self.saver.save(sess,os.path.join(self.ckpt_dir,"mymodel.ckpt"))
              print "The model parameters are saved"
 
     def get_batch(self,train_x,train_y,start,batch_size=50):
-        utt_keys=train_x.keys()
+        utt_keys=list(train_x.keys())
         if (start+1)*batch_size>len(utt_keys):
             batch_keys=utt_keys[start*batch_size:]
         else:
            batch_keys=utt_keys[start*batch_size:(start+1)*batch_size]
         batch_x_dict=dict([(k,train_x[k]) for k  in batch_keys])
         batch_y_dict=dict([(k,train_y[k]) for k in batch_keys])
-        utt_len_batch=[len(batch_x_dict[k])for k in batch_x_dict.keys()]
+        utt_len_batch=[len(batch_x_dict[k])for k in list(batch_x_dict.keys())]
         return batch_x_dict, batch_y_dict, utt_len_batch
 
     def train_sequence_model(self,train_x,train_y,utt_length,batch_size=256,num_of_epochs=10,shuffle_data=False):
@@ -143,9 +147,9 @@ class TrainTensorflowModels(TensorflowModels):
             #overall_loss=tf.summary.scalar("training loss",overall_loss)
             with tf.Session() as sess:
                  init.run();summary_writer=tf.summary.FileWriter(os.path.join(self.ckpt_dir,"losslog"),sess.graph)
-                 for epoch in xrange(num_of_epochs):
+                 for epoch in range(num_of_epochs):
                      L=1;overall_loss=0
-                     for iteration in range(int(len(train_x.keys())/batch_size)+1):
+                     for iteration in range(int(old_div(len(list(train_x.keys())),batch_size))+1):
                         x_batch,y_batch,utt_length_batch=self.get_batch(train_x,train_y,iteration,batch_size)
                         if utt_length_batch==[]:
                             continue
@@ -177,7 +181,7 @@ class TrainTensorflowModels(TensorflowModels):
                      #    training_loss=loss.eval(feed_dict={input_layer:temp_train_x,output_data:temp_train_y,utt_length_placeholder:utt_length,is_training_batch:False})
                      #else:
                      #    training_loss=loss.eval(feed_dict={input_layer:temp_train_x,output_data:temp_train_y,utt_length_placeholder:utt_length})
-                     print "Epoch ",epoch+1,"Training loss:",overall_loss/L
+                     print "Epoch ",epoch+1,"Training loss:",old_div(overall_loss,L)
                  #model_name="sequence_model"+" hybrid.ckpt" if hybrid==1 else "sequence_model.ckpt"
                  self.saver.save(sess,os.path.join(self.ckpt_dir,"mymodel.ckpt"))
                  print "The model parameters are saved"
@@ -187,7 +191,7 @@ class TrainTensorflowModels(TensorflowModels):
 
         io_funcs = BinaryIOCollection()
 
-        test_id_list = test_x.keys()
+        test_id_list = list(test_x.keys())
         test_id_list.sort()
 
         test_file_number = len(test_id_list)
@@ -200,7 +204,7 @@ class TrainTensorflowModels(TensorflowModels):
            input_layer=tf.get_collection("input_layer")[0]
            new_saver.restore(sess,os.path.join(self.ckpt_dir,"mymodel.ckpt"))
            print "The model parameters are successfully restored"
-           for utt_index in xrange(test_file_number):
+           for utt_index in range(test_file_number):
                gen_test_file_name = gen_test_file_list[utt_index]
                temp_test_x        = test_x[test_id_list[utt_index]]
                num_of_rows        = temp_test_x.shape[0]
@@ -242,14 +246,14 @@ class Train_Encoder_Decoder_Models(Encoder_Decoder_Models):
 
       def get_batch(self,train_x,train_y,start,batch_size):
 
-             utt_keys=train_x.keys()
+             utt_keys=list(train_x.keys())
              if (start+1)*batch_size>len(utt_keys):
                  batch_keys=utt_keys[start*batch_size:]
              else:
                 batch_keys=utt_keys[start*batch_size:(start+1)*batch_size]
              batch_x_dict=dict([(k,train_x[k]) for k  in batch_keys])
              batch_y_dict=dict([(k,train_y[k]) for k in batch_keys])
-             utt_len_batch=[len(batch_x_dict[k])for k in batch_x_dict.keys()]
+             utt_len_batch=[len(batch_x_dict[k])for k in list(batch_x_dict.keys())]
              return batch_x_dict, batch_y_dict, utt_len_batch
 
 
@@ -278,15 +282,15 @@ class Train_Encoder_Decoder_Models(Encoder_Decoder_Models):
                overall_loss=0;tf.summary.scalar("training_loss",overall_loss)
                with tf.Session() as sess:
                  init.run();tf.summary_writer=tf.summary.FileWriter(os.path.join(self.ckpt_dir,"losslog"),sess.graph)
-                 for epoch in xrange(num_of_epochs):
+                 for epoch in range(num_of_epochs):
                      L=1
-                     for iteration in range(int(temp_train_x.shape[0]/batch_size)+1):
+                     for iteration in range(int(old_div(temp_train_x.shape[0],batch_size))+1):
                         x_batch_dict,y_batch_dict,utt_length_batch=self.get_batch(train_x,train_y,iteration,batch_size)
                         if utt_length_batch==[]:
                             continue
                         else:L+=1
-                        assert [len(v) for v in x_batch_dict.values()]==[len(v) for v in y_batch_dict.values()]
-                        assert x_batch_dict.keys()==y_batch_dict.keys()
+                        assert [len(v) for v in list(x_batch_dict.values())]==[len(v) for v in list(y_batch_dict.values())]
+                        assert list(x_batch_dict.keys())==list(y_batch_dict.keys())
                         max_length_batch=max(utt_length_batch)
                         x_batch=data_utils.transform_data_to_3d_matrix(x_batch_dict, max_length=max_length_batch, shuffle_data=False)
                         y_batch=data_utils.transform_data_to_3d_matrix(y_batch_dict, max_length=max_length_batch, shuffle_data=False)
@@ -299,7 +303,7 @@ class Train_Encoder_Decoder_Models(Encoder_Decoder_Models):
                      #    training_loss=loss.eval(feed_dict={inputs_data:temp_train_x,targets:temp_train_y,target_sequence_length:utt_length})
                      #else:
                      #    training_loss=loss.eval(feed_dict={inputs_data:temp_train_x,targets:temp_train_y,inputs_sequence_length:utt_length,target_sequence_length:utt_length})
-                     print "Epoch:",epoch+1, "Training loss:",overall_loss/L
+                     print "Epoch:",epoch+1, "Training loss:",old_div(overall_loss,L)
                      summary_writer.add_summary(str(overall_loss),epoch)
                  self.saver.save(sess,os.path.join(self.ckpt_dir,"mymodel.ckpt"))
                  print "The model parameters are saved"
@@ -309,7 +313,7 @@ class Train_Encoder_Decoder_Models(Encoder_Decoder_Models):
 
          io_funcs = BinaryIOCollection()
 
-         test_id_list = test_x.keys()
+         test_id_list = list(test_x.keys())
          test_id_list.sort()
          inference_batch_size=len(test_id_list)
          test_file_number = len(test_id_list)
@@ -324,7 +328,7 @@ class Train_Encoder_Decoder_Models(Encoder_Decoder_Models):
              new_saver.restore(sess,os.path.join(self.ckpt_dir,"mymodel.ckpt"))
              print "Model parameters are successfully restored"
              print("generating features on held-out test data...")
-             for utt_index in xrange(test_file_number):
+             for utt_index in range(test_file_number):
                gen_test_file_name = gen_test_file_list[utt_index]
                temp_test_x        = test_x[test_id_list[utt_index]]
                num_of_rows        = temp_test_x.shape[0]

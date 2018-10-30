@@ -1,4 +1,8 @@
+from __future__ import division
 
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import pickle
 import os
 import sys
@@ -41,7 +45,7 @@ class SequentialDNN(object):
                 input_size = n_ins
             else:
                 input_size = hidden_layer_sizes[i-1]
-            W_value = gnp.garray(numpy_rng.normal(0.0, 1.0/np.sqrt(input_size), size=(input_size, hidden_layer_sizes[i])))
+            W_value = gnp.garray(numpy_rng.normal(0.0, old_div(1.0,np.sqrt(input_size)), size=(input_size, hidden_layer_sizes[i])))
             b_value = gnp.zeros(hidden_layer_sizes[i])
             mW_value = gnp.zeros((input_size, hidden_layer_sizes[i]))
             mb_value = gnp.zeros(hidden_layer_sizes[i])
@@ -52,7 +56,7 @@ class SequentialDNN(object):
 
         #output layer
         input_size = hidden_layer_sizes[self.n_layers-1]
-        W_value = gnp.garray(numpy_rng.normal(0.0, 1.0/np.sqrt(input_size), size=(input_size, n_outs)))
+        W_value = gnp.garray(numpy_rng.normal(0.0, old_div(1.0,np.sqrt(input_size)), size=(input_size, n_outs)))
         b_value = gnp.zeros(n_outs)
         mW_value = gnp.zeros((input_size, n_outs))
         mb_value = gnp.zeros(n_outs)
@@ -136,7 +140,7 @@ class SequentialDNN(object):
 
             traj_err_mat[sub_dim_start:sub_dim_start+sub_dim] = traj_err.reshape((sub_dim, frame_number))
 
-            traj_err = traj_err / sub_std_mat
+            traj_err = old_div(traj_err, sub_std_mat)
 
             obs_err_vec = gnp.dot(wuwwu.T, traj_err)
 #            temp_obs_err_vec = gnp.dot(traj_err.T, wuwwu)
@@ -192,7 +196,7 @@ class SequentialDNN(object):
 
     def gradient_update(self, batch_size, learning_rate, momentum):
 
-        multiplier = learning_rate / batch_size;
+        multiplier = old_div(learning_rate, batch_size);
         for i in range(len(self.W_grads)):
 
             if i >= len(self.W_grads) - 2:
@@ -362,7 +366,7 @@ class SequentialDNN(object):
         var_frames[frame_number-1, 2] = 100000000000;
 
 
-        tau_frames = 1.0 / var_frames
+        tau_frames = old_div(1.0, var_frames)
 
         prec = self.build_wuw(frame_number, tau_frames, win_mats)
         inv_prec_full = bla.solveh(prec, np.eye(frame_number))

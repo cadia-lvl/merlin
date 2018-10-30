@@ -1,3 +1,6 @@
+from __future__ import division
+from builtins import zip
+from past.utils import old_div
 import theano
 import theano.tensor as T
 
@@ -32,9 +35,9 @@ def compile_ADAM_train_function(model, gparams, learning_rate=0.001, b1=0.9, b2=
 
         m = b1_t*m_previous + (1 - b1_t)*g                             # (Update biased first moment estimate)
         v = b2*v_previous + (1 - b2)*g**2                              # (Update biased second raw moment estimate)
-        m_hat = m / (1-b1**t)                                          # (Compute bias-corrected first moment estimate)
-        v_hat = v / (1-b2**t)                                          # (Compute bias-corrected second raw moment estimate)
-        theta = theta_previous - (alpha * m_hat) / (T.sqrt(v_hat) + e) #(Update parameters)
+        m_hat = old_div(m, (1-b1**t))                                          # (Compute bias-corrected first moment estimate)
+        v_hat = old_div(v, (1-b2**t))                                          # (Compute bias-corrected second raw moment estimate)
+        theta = theta_previous - old_div((alpha * m_hat), (T.sqrt(v_hat) + e)) #(Update parameters)
 
         #updates.append((m_previous, m))
         #updates.append((v_previous, v))

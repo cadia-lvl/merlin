@@ -1,4 +1,7 @@
 
+from builtins import zip
+from builtins import range
+from builtins import object
 import sys
 
 import numpy as np

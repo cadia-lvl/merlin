@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -39,6 +40,9 @@
 
 
 ## use theano to benefit from GPU computation
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from theano import tensor as T
 import  theano
 
@@ -52,7 +56,7 @@ class MLParameterGeneration(object):
         self.delta_win = delta_win
         self.acc_win   = acc_win
         ###assume the delta and acc windows have the same length
-        self.win_length = int(len(delta_win)/2)
+        self.win_length = int(old_div(len(delta_win),2))
 
     def build_theano_function_wdw(self):
 
@@ -166,7 +170,7 @@ class MLParameterGeneration(object):
             D_matrix[frame_number+win_length+i, frame_number+win_length+i] = 1.0
 
         for i in range(frame_number):
-            D_matrix[win_length+i, win_length+i] = 1.0 / D_value
+            D_matrix[win_length+i, win_length+i] = old_div(1.0, D_value)
 
         return  D_matrix
 

@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://github.com/CSTR-Edinburgh/merlin
@@ -37,6 +38,8 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import range
+from past.utils import old_div
 import os, sys 
 import time
 import random
@@ -70,7 +73,7 @@ def read_data_from_file_list(inp_file_list, out_file_list, inp_dim, out_dim, seq
      
     ### read file by file ###
     current_index = 0
-    for i in xrange(num_of_utt):    
+    for i in range(num_of_utt):    
         inp_file_name = inp_file_list[i]
         out_file_name = out_file_list[i]
         inp_features, inp_frame_number = io_funcs.load_binary_file_frame(inp_file_name, inp_dim)
@@ -123,7 +126,7 @@ def read_test_data_from_file_list(inp_file_list, inp_dim, sequential_training=Tr
      
     ### read file by file ###
     current_index = 0
-    for i in xrange(num_of_utt):    
+    for i in range(num_of_utt):    
         inp_file_name = inp_file_list[i]
         inp_features, frame_number = io_funcs.load_binary_file_frame(inp_file_name, inp_dim)
 
@@ -153,14 +156,14 @@ def read_test_data_from_file_list(inp_file_list, inp_dim, sequential_training=Tr
 
 def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1, shuffle_data = True, shuffle_type = 1, padding="right"):
     num_of_utt = len(data)
-    feat_dim   = data[data.keys()[0]].shape[1]
+    feat_dim   = data[list(data.keys())[0]].shape[1]
 
     if max_length > 0:
         temp_set = np.zeros((num_of_utt, max_length, feat_dim))
         
         ### read file by file ###
         current_index = 0
-        for base_file_name, in_features in data.iteritems():
+        for base_file_name, in_features in data.items():
             frame_number = min(in_features.shape[0], max_length)
             if padding=="right":
                 temp_set[current_index, 0:frame_number, ] = in_features
@@ -171,7 +174,7 @@ def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1
     else:
         temp_set = np.zeros((FRAME_BUFFER_SIZE, feat_dim))
 
-        train_idx_list = data.keys()
+        train_idx_list = list(data.keys())
         train_idx_list.sort()
         
         if shuffle_data:
@@ -182,7 +185,7 @@ def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1
         
         ### read file by file ###
         current_index = 0
-        for file_number in xrange(num_of_utt):
+        for file_number in range(num_of_utt):
             base_file_name = train_idx_list[file_number]
             in_features    = data[base_file_name]
             frame_number   = in_features.shape[0]
@@ -191,10 +194,10 @@ def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1
             current_index += frame_number
     
             if (file_number+1)%merge_size == 0:
-                current_index = seq_length * (int(np.ceil(float(current_index)/float(seq_length))))
+                current_index = seq_length * (int(np.ceil(old_div(float(current_index),float(seq_length)))))
             
         
-        num_of_samples = int(np.ceil(float(current_index)/float(seq_length)))
+        num_of_samples = int(np.ceil(old_div(float(current_index),float(seq_length))))
     
         temp_set = temp_set[0: num_of_samples*seq_length, ]
         temp_set = temp_set.reshape(-1, seq_length, feat_dim)
@@ -219,13 +222,13 @@ def read_and_transform_data_from_file_list(in_file_list, dim, seq_length=200, me
         current_index += frame_number
 
         if (i+1)%merge_size == 0:
-            current_index = seq_length * (int(np.ceil(float(current_index)/float(seq_length))))
+            current_index = seq_length * (int(np.ceil(old_div(float(current_index),float(seq_length)))))
             
         drawProgressBar(i+1, num_of_utt)
         
     sys.stdout.write("\n")
 
-    num_of_samples = int(np.ceil(float(current_index)/float(seq_length)))
+    num_of_samples = int(np.ceil(old_div(float(current_index),float(seq_length))))
 
     temp_set = temp_set[0: num_of_samples*seq_length, ]
     temp_set = temp_set.reshape(num_of_samples, seq_length)
@@ -236,7 +239,7 @@ def merge_data(train_x, train_y, merge_size):
     temp_train_x = {}
     temp_train_y = {}
 
-    train_id_list     = train_x.keys()
+    train_id_list     = list(train_x.keys())
     train_file_number = len(train_id_list)
     train_id_list.sort()
 
@@ -246,7 +249,7 @@ def merge_data(train_x, train_y, merge_size):
     merged_features_x = np.zeros((0, inp_dim))
     merged_features_y = np.zeros((0, out_dim))
     new_file_count = 0
-    for file_index in xrange(1, train_file_number+1):
+    for file_index in range(1, train_file_number+1):
         inp_features      = train_x[train_id_list[file_index-1]]
         out_features      = train_y[train_id_list[file_index-1]]
         merged_features_x = np.vstack((merged_features_x, inp_features))
@@ -272,21 +275,21 @@ def shuffle_file_list(train_idx_list, shuffle_type=1, merge_size=5):
         return train_idx_list
      
     elif shuffle_type==2:  ## shuffle by a group of sentences
-        id_numbers = range(0, train_file_number, merge_size)
+        id_numbers = list(range(0, train_file_number, merge_size))
         random.shuffle(id_numbers)
         new_train_idx_list = []
-        for i in xrange(len(id_numbers)):
+        for i in range(len(id_numbers)):
             new_train_idx_list += train_idx_list[id_numbers[i]:id_numbers[i]+merge_size]
         return new_train_idx_list
 
 def get_stateful_data(train_x, train_y, batch_size):
-    num_of_batches = int(train_x.shape[0]/batch_size) 
+    num_of_batches = int(old_div(train_x.shape[0],batch_size)) 
     train_x   = train_x[0: num_of_batches*batch_size, ]
     train_y   = train_y[0: num_of_batches*batch_size, ]
 
     stateful_seq = np.zeros(num_of_batches*batch_size, dtype="int32")
-    for i in xrange(num_of_batches):
-        stateful_seq[i*batch_size:(i+1)*batch_size] = np.array(range(batch_size))*num_of_batches+i
+    for i in range(num_of_batches):
+        stateful_seq[i*batch_size:(i+1)*batch_size] = np.array(list(range(batch_size)))*num_of_batches+i
 
     temp_train_x   = train_x[stateful_seq]
     temp_train_y   = train_y[stateful_seq]
@@ -297,7 +300,7 @@ def get_stateful_input(test_x, seq_length, batch_size=1):
     [n_frames, n_dim] = test_x.shape
 
     num_of_samples = batch_size*seq_length
-    num_of_batches = int(n_frames/num_of_samples) + 1
+    num_of_batches = int(old_div(n_frames,num_of_samples)) + 1
     new_data_size  = num_of_batches*num_of_samples
 
     temp_test_x = np.zeros((new_data_size, n_dim))
@@ -349,7 +352,7 @@ def norm_data(data, scaler, sequential_training=True):
     if not sequential_training:
         data = scaler.transform(data) 
     else:
-        for filename, features in data.iteritems():
+        for filename, features in data.items():
             data[filename] = scaler.transform(features)
 
 def denorm_data(data, scaler):
@@ -383,12 +386,12 @@ def read_file_list(file_name):
 
 def print_status(i, length): 
     pr = int(float(i)/float(length)*100)
-    st = int(float(pr)/7)
+    st = int(old_div(float(pr),7))
     sys.stdout.write(("\r%d/%d ")%(i,length)+("[ %d"%pr+"% ] <<< ")+('='*st)+(''*(100-st)))
     sys.stdout.flush()
     
 def drawProgressBar(indx, length, barLen = 20):
-    percent = float(indx)/length
+    percent = old_div(float(indx),length)
     sys.stdout.write("\r")
     progress = ""
     for i in range(barLen):

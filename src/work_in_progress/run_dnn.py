@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -38,6 +39,9 @@
 ################################################################################
 
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import pickle
 import gzip
 import os, sys, errno
@@ -136,7 +140,7 @@ def prepare_file_path_list(file_id_list, file_dir, file_extension, new_dir_switc
 
 def visualize_dnn(dnn):
 
-    layer_num = len(dnn.params) / 2     ## including input and output
+    layer_num = old_div(len(dnn.params), 2)     ## including input and output
 
     for i in range(layer_num):
         fig_name = 'Activation weights W' + str(i)
@@ -211,7 +215,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     pretraining_lr = float(hyper_params['pretraining_lr'])
 
 
-    buffer_size = int(buffer_size / batch_size) * batch_size
+    buffer_size = int(old_div(buffer_size, batch_size)) * batch_size
 
     ###################
     (train_x_file_list, train_y_file_list) = train_xy_file_list
@@ -291,7 +295,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
             train_set_x.set_value(numpy.asarray(temp_train_set_x, dtype=theano.config.floatX), borrow=True)
             train_set_y.set_value(numpy.asarray(temp_train_set_y, dtype=theano.config.floatX), borrow=True)
 
-            n_train_batches = train_set_x.get_value().shape[0] / batch_size
+            n_train_batches = old_div(train_set_x.get_value().shape[0], batch_size)
 
             logger.debug('this partition: %d frames (divided into %d batches of size %d)' %(train_set_x.get_value(borrow=True).shape[0], n_train_batches, batch_size) )
 
@@ -345,7 +349,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     end_time = time.clock()
     pickle.dump(best_dnn_model, open(nnets_file_name, 'wb'))
 
-    logger.info('overall  training time: %.2fm validation error %f' % ((end_time - start_time) / 60., best_validation_loss))
+    logger.info('overall  training time: %.2fm validation error %f' % (old_div((end_time - start_time), 60.), best_validation_loss))
 
     if plot:
         plotlogger.save_plot('training convergence',title='Final training and validation error',xlabel='epochs',ylabel='error')
@@ -370,7 +374,7 @@ def dnn_generation(valid_file_list, nnets_file_name, n_ins, n_outs, out_file_lis
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         features = features.reshape((-1, n_ins))
         temp_set_x = features.tolist()
         test_set_x = theano.shared(numpy.asarray(temp_set_x, dtype=theano.config.floatX))
@@ -402,7 +406,7 @@ def dnn_hidden_generation(valid_file_list, nnets_file_name, n_ins, n_outs, out_f
         fid_lab = open(valid_file_list[i], 'rb')
         features = numpy.fromfile(fid_lab, dtype=numpy.float32)
         fid_lab.close()
-        features = features[:(n_ins * (features.size / n_ins))]
+        features = features[:(n_ins * (old_div(features.size, n_ins)))]
         features = features.reshape((-1, n_ins))
         temp_set_x = features.tolist()
         test_set_x = theano.shared(numpy.asarray(temp_set_x, dtype=theano.config.floatX))
@@ -553,7 +557,7 @@ def main_function(cfg):
         # create all the lists of these, ready to pass to the label composer
 
         in_label_align_file_list = {}
-        for label_style, label_style_required in label_composer.label_styles.items():
+        for label_style, label_style_required in list(label_composer.label_styles.items()):
             if label_style_required:
                 logger.info('labels of style %s are required - constructing file paths for them' % label_style)
                 if label_style == 'xpath':
@@ -576,7 +580,7 @@ def main_function(cfg):
                 # a dictionary of file descriptors, pointing at the required files
                 required_labels={}
 
-                for label_style, label_style_required in label_composer.label_styles.items():
+                for label_style, label_style_required in list(label_composer.label_styles.items()):
 
                     # the files will be a parallel set of files for a single utterance
                     # e.g., the XML tree and an HTS label file
@@ -588,7 +592,7 @@ def main_function(cfg):
                 label_composer.make_labels(required_labels,out_file_name=binary_label_file_list[i],fill_missing_values=cfg.fill_missing_values,iterate_over_frames=cfg.iterate_over_frames)
 
                 # now close all opened files
-                for fd in required_labels.values():
+                for fd in list(required_labels.values()):
                     fd.close()
 
 
@@ -889,8 +893,8 @@ def main_function(cfg):
                 remover.remove_silence(in_file_list_dict['mgc'][cfg.train_file_number:cfg.train_file_number+cfg.valid_file_number+cfg.test_file_number], in_gen_label_align_file_list, ref_mgc_list)
             valid_spectral_distortion = calculator.compute_distortion(valid_file_id_list, ref_data_dir, gen_dir, cfg.mgc_ext, cfg.mgc_dim)
             test_spectral_distortion  = calculator.compute_distortion(test_file_id_list , ref_data_dir, gen_dir, cfg.mgc_ext, cfg.mgc_dim)
-            valid_spectral_distortion *= (10 /numpy.log(10)) * numpy.sqrt(2.0)    ##MCD
-            test_spectral_distortion  *= (10 /numpy.log(10)) * numpy.sqrt(2.0)    ##MCD
+            valid_spectral_distortion *= (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)    ##MCD
+            test_spectral_distortion  *= (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)    ##MCD
 
 
         if 'bap' in cfg.in_dimension_dict:
@@ -903,8 +907,8 @@ def main_function(cfg):
                 remover.remove_silence(in_file_list_dict['bap'][cfg.train_file_number:cfg.train_file_number+cfg.valid_file_number+cfg.test_file_number], in_gen_label_align_file_list, ref_bap_list)
             valid_bap_mse        = calculator.compute_distortion(valid_file_id_list, ref_data_dir, gen_dir, cfg.bap_ext, cfg.bap_dim)
             test_bap_mse         = calculator.compute_distortion(test_file_id_list , ref_data_dir, gen_dir, cfg.bap_ext, cfg.bap_dim)
-            valid_bap_mse = valid_bap_mse / 10.0
-            test_bap_mse  = test_bap_mse / 10.0
+            valid_bap_mse = old_div(valid_bap_mse, 10.0)
+            test_bap_mse  = old_div(test_bap_mse, 10.0)
 
         if 'lf0' in cfg.in_dimension_dict:
             if cfg.remove_silence_using_binary_labels:

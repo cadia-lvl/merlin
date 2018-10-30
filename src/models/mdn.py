@@ -40,6 +40,11 @@
 ###THEANO_FLAGS='cuda.root=/opt/cuda-5.0.35,mode=FAST_RUN,device=gpu0,floatX=float32,exception_verbosity=high' python dnn.py
 """
 """
+from __future__ import division
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import pickle
 import os
 import sys
@@ -134,7 +139,7 @@ class MixtureDensityNetwork(object):
 
         self.errors = 0.0
 
-        epsd = self.eff_sample_size**(-2.0/(n_outs + 2.0))
+        epsd = self.eff_sample_size**(old_div(-2.0,(n_outs + 2.0)))
         beta = (epsd - 1.0) + math.sqrt(epsd*(epsd - 1.0))
 
         if self.beta_opt:

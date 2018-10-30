@@ -37,6 +37,8 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import range
+from builtins import object
 import random
 import numpy as np
 

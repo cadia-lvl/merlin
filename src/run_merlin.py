@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://github.com/CSTR-Edinburgh/merlin
@@ -37,6 +38,9 @@
 #  THIS SOFTWARE.
 ################################################################################
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import pickle
 import gzip
 import os, sys, errno
@@ -200,7 +204,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
     sequential_training = hyper_params['sequential_training']
     dropout_rate = hyper_params['dropout_rate']
 
-    buffer_size = int(buffer_size / batch_size) * batch_size
+    buffer_size = int(old_div(buffer_size, batch_size)) * batch_size
 
     ###################
     (train_x_file_list, train_y_file_list) = train_xy_file_list
@@ -403,7 +407,7 @@ def train_DNN(train_xy_file_list, valid_xy_file_list, \
 
     end_time = time.time()
 
-    logger.info('overall  training time: %.2fm validation error %f' % ((end_time - start_time) / 60., best_validation_loss))
+    logger.info('overall  training time: %.2fm validation error %f' % (old_div((end_time - start_time), 60.), best_validation_loss))
 
     if plot:
         plotlogger.save_plot('training convergence',title='Final training and validation error',xlabel='epochs',ylabel='error')
@@ -625,7 +629,7 @@ def main_function(cfg):
             out_feat_file_list = file_paths.out_feat_file_list
             in_dim = label_normaliser.dimension
 
-            for new_feature, new_feature_dim in cfg.additional_features.items():
+            for new_feature, new_feature_dim in list(cfg.additional_features.items()):
                 new_feat_dir  = os.path.join(data_dir, new_feature)
                 new_feat_file_list = prepare_file_path_list(file_id_list, new_feat_dir, '.'+new_feature)
 
@@ -733,7 +737,7 @@ def main_function(cfg):
                     dimension_index = 0
                     recorded_vuv = False
                     vuv_dimension = None
-                    for feature_name in cfg.out_dimension_dict.keys():
+                    for feature_name in list(cfg.out_dimension_dict.keys()):
                         if feature_name != 'vuv':
                             stream_start_index[feature_name] = dimension_index
                         else:
@@ -1082,8 +1086,8 @@ def main_function(cfg):
                 ref_data_dir = os.path.join(data_dir, 'mgc')
             valid_spectral_distortion = calculator.compute_distortion(valid_file_id_list, ref_data_dir, gen_dir, cfg.mgc_ext, cfg.mgc_dim)
             test_spectral_distortion  = calculator.compute_distortion(test_file_id_list , ref_data_dir, gen_dir, cfg.mgc_ext, cfg.mgc_dim)
-            valid_spectral_distortion *= (10 /numpy.log(10)) * numpy.sqrt(2.0)    ##MCD
-            test_spectral_distortion  *= (10 /numpy.log(10)) * numpy.sqrt(2.0)    ##MCD
+            valid_spectral_distortion *= (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)    ##MCD
+            test_spectral_distortion  *= (old_div(10,numpy.log(10))) * numpy.sqrt(2.0)    ##MCD
 
 
         if 'bap' in cfg.in_dimension_dict:
@@ -1098,8 +1102,8 @@ def main_function(cfg):
                 ref_data_dir = os.path.join(data_dir, 'bap')
             valid_bap_mse = calculator.compute_distortion(valid_file_id_list, ref_data_dir, gen_dir, cfg.bap_ext, cfg.bap_dim)
             test_bap_mse  = calculator.compute_distortion(test_file_id_list , ref_data_dir, gen_dir, cfg.bap_ext, cfg.bap_dim)
-            valid_bap_mse = valid_bap_mse / 10.0    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
-            test_bap_mse  = test_bap_mse / 10.0    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
+            valid_bap_mse = old_div(valid_bap_mse, 10.0)    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
+            test_bap_mse  = old_div(test_bap_mse, 10.0)    ##Cassia's bap is computed from 10*log|S(w)|. if use HTS/SPTK style, do the same as MGC
 
         if 'lf0' in cfg.in_dimension_dict:
             if cfg.remove_silence_using_binary_labels:

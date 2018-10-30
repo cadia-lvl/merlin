@@ -1,3 +1,4 @@
+from __future__ import division
 ################################################################################
 #           The Neural Network (NN) based Speech Synthesis System
 #                https://svn.ecdf.ed.ac.uk/repo/inf/dnn_tts/
@@ -39,6 +40,9 @@
 
 
 
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy
 import logging
 
@@ -147,7 +151,7 @@ class   AcousticBase(object):
                         break
                 if j < frame_number-1:
                     if last_value > 0.0:
-                        step = (data[j] - data[i-1]) / float(j - i)
+                        step = old_div((data[j] - data[i-1]), float(j - i))
                         for k in range(i, j):
                             ip_data[k] = data[i-1] + step * (k - i + 1)
                     else:
@@ -169,7 +173,7 @@ class   AcousticBase(object):
         vector = numpy.reshape(vector, (frame_number, 1))
 
         win_length = len(dynamic_win)
-        win_width = int(win_length/2)
+        win_width = int(old_div(win_length,2))
         temp_vector = numpy.zeros((frame_number + 2 * win_width, 1))
         delta_vector = numpy.zeros((frame_number, 1))
 

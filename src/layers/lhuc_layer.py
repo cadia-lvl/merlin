@@ -1,4 +1,8 @@
+from __future__ import division
 
+from builtins import zip
+from builtins import object
+from past.utils import old_div
 import numpy, time, pickle, gzip, sys, os, copy
 
 import theano
@@ -23,7 +27,7 @@ class SigmoidLayer_LHUC(object):
 
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         if W is None:
-            W_value = numpy.asarray(rng.normal(0.0, 1.0/numpy.sqrt(n_in),
+            W_value = numpy.asarray(rng.normal(0.0, old_div(1.0,numpy.sqrt(n_in)),
                       size=(n_in, n_out)), dtype=theano.config.floatX)
             W = theano.shared(value=W_value,
                               name='W', borrow=True)
@@ -32,7 +36,7 @@ class SigmoidLayer_LHUC(object):
                               dtype=theano.config.floatX),
                               name='b', borrow=True)
         if c is None:
-            c_value = numpy.asarray(rng.normal(0.0, 1.0/numpy.sqrt(n_out),
+            c_value = numpy.asarray(rng.normal(0.0, old_div(1.0,numpy.sqrt(n_out)),
                       size=(n_out,)), dtype=theano.config.floatX)
             c = theano.shared(value=c_value, name='c', borrow=True)
 
@@ -100,9 +104,9 @@ class LstmBase_LHUC(object):
         self.n_h = int(n_h)
         
         # random initialisation 
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=theano.config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=theano.config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=theano.config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=theano.config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=theano.config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=theano.config.floatX)
 
         # Input gate weights
         self.W_xi = theano.shared(value=Wx_value, name='W_xi')
@@ -110,9 +114,9 @@ class LstmBase_LHUC(object):
         self.w_ci = theano.shared(value=Wc_value, name='w_ci')
 
         # random initialisation 
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=theano.config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=theano.config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=theano.config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=theano.config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=theano.config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=theano.config.floatX)
 
         # Forget gate weights
         self.W_xf = theano.shared(value=Wx_value, name='W_xf')
@@ -120,9 +124,9 @@ class LstmBase_LHUC(object):
         self.w_cf = theano.shared(value=Wc_value, name='w_cf')
 
         # random initialisation 
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=theano.config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=theano.config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=theano.config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=theano.config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=theano.config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=theano.config.floatX)
 
         # Output gate weights
         self.W_xo = theano.shared(value=Wx_value, name='W_xo')
@@ -130,9 +134,9 @@ class LstmBase_LHUC(object):
         self.w_co = theano.shared(value=Wc_value, name='w_co')
 
         # random initialisation 
-        Wx_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_in), size=(n_in, n_h)), dtype=theano.config.floatX)
-        Wh_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, n_h)), dtype=theano.config.floatX)
-        Wc_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h, )), dtype=theano.config.floatX)
+        Wx_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_in)), size=(n_in, n_h)), dtype=theano.config.floatX)
+        Wh_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, n_h)), dtype=theano.config.floatX)
+        Wc_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h, )), dtype=theano.config.floatX)
 
         # Cell weights
         self.W_xc = theano.shared(value=Wx_value, name='W_xc')
@@ -146,7 +150,7 @@ class LstmBase_LHUC(object):
         
 
         # scaling factor
-        c_value = np.asarray(rng.normal(0.0, 1.0/np.sqrt(n_h), size=(n_h)), dtype=theano.config.floatX)
+        c_value = np.asarray(rng.normal(0.0, old_div(1.0,np.sqrt(n_h)), size=(n_h)), dtype=theano.config.floatX)
         self.C = theano.shared(value=c_value, name='c')
         ### make a layer
         
