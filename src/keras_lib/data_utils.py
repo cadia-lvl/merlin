@@ -112,6 +112,7 @@ def read_data_from_file_list(inp_file_list, out_file_list, inp_dim, out_dim, seq
 
     return temp_set_x, temp_set_y, file_length_dict
 
+
 def read_test_data_from_file_list(inp_file_list, inp_dim, sequential_training=True):
     io_funcs = BinaryIOCollection()
 
@@ -153,6 +154,7 @@ def read_test_data_from_file_list(inp_file_list, inp_dim, sequential_training=Tr
         temp_set_x = temp_set_x[0:current_index, ]
 
     return temp_set_x, file_length_dict
+
 
 def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1, shuffle_data = True, shuffle_type = 1, padding="right"):
     num_of_utt = len(data)
@@ -204,6 +206,7 @@ def transform_data_to_3d_matrix(data, seq_length=200, max_length=0, merge_size=1
 
     return temp_set
 
+
 def read_and_transform_data_from_file_list(in_file_list, dim, seq_length=200, merge_size=1):
     io_funcs = BinaryIOCollection()
 
@@ -235,6 +238,7 @@ def read_and_transform_data_from_file_list(in_file_list, dim, seq_length=200, me
 
     return temp_set
 
+
 def merge_data(train_x, train_y, merge_size):
     temp_train_x = {}
     temp_train_y = {}
@@ -265,6 +269,7 @@ def merge_data(train_x, train_y, merge_size):
 
     return temp_train_x, temp_train_y
 
+
 def shuffle_file_list(train_idx_list, shuffle_type=1, merge_size=5):
     ### shuffle train id list ###
     random.seed(271638)
@@ -282,6 +287,7 @@ def shuffle_file_list(train_idx_list, shuffle_type=1, merge_size=5):
             new_train_idx_list += train_idx_list[id_numbers[i]:id_numbers[i]+merge_size]
         return new_train_idx_list
 
+
 def get_stateful_data(train_x, train_y, batch_size):
     num_of_batches = int(old_div(train_x.shape[0],batch_size))
     train_x   = train_x[0: num_of_batches*batch_size, ]
@@ -296,6 +302,7 @@ def get_stateful_data(train_x, train_y, batch_size):
 
     return temp_train_x, temp_train_y
 
+
 def get_stateful_input(test_x, seq_length, batch_size=1):
     [n_frames, n_dim] = test_x.shape
 
@@ -309,6 +316,7 @@ def get_stateful_input(test_x, seq_length, batch_size=1):
     temp_test_x = temp_test_x.reshape(-1, seq_length, n_dim)
 
     return temp_test_x
+
 
 def compute_norm_stats(data, stats_file, method="MVN", no_scaling_ind=()):
     #### normalize training data ####
@@ -334,6 +342,7 @@ def compute_norm_stats(data, stats_file, method="MVN", no_scaling_ind=()):
 
     return scaler
 
+
 def load_norm_stats(stats_file, dim, method="MVN"):
     #### load norm stats ####
     io_funcs = BinaryIOCollection()
@@ -352,9 +361,10 @@ def load_norm_stats(stats_file, dim, method="MVN"):
 
     return scaler
 
+
 def norm_data(data, scaler, sequential_training=True):
     if scaler is None:
-        return;
+        return
 
     #### normalize data ####
     if not sequential_training:
@@ -363,12 +373,16 @@ def norm_data(data, scaler, sequential_training=True):
         for filename, features in list(data.items()):
             data[filename] = scaler.transform(features)
 
+    return data
+
+
 def denorm_data(data, scaler):
     if scaler is None:
         return;
 
     #### de-normalize data ####
     data = scaler.inverse_transform(data)
+
 
 def prepare_file_path_list(file_id_list, file_dir, file_extension, new_dir_switch=True):
     if not os.path.exists(file_dir) and new_dir_switch:
@@ -378,7 +392,8 @@ def prepare_file_path_list(file_id_list, file_dir, file_extension, new_dir_switc
         file_name = file_dir + '/' + file_id + file_extension
         file_name_list.append(file_name)
 
-    return  file_name_list
+    return file_name_list
+
 
 def read_file_list(file_name):
     file_lists = []
@@ -390,13 +405,15 @@ def read_file_list(file_name):
         file_lists.append(line)
     fid.close()
 
-    return  file_lists
+    return file_lists
+
 
 def print_status(i, length):
     pr = int(float(i)/float(length)*100)
     st = int(old_div(float(pr),7))
     sys.stdout.write(("\r%d/%d ")%(i,length)+("[ %d"%pr+"% ] <<< ")+('='*st)+(''*(100-st)))
     sys.stdout.flush()
+
 
 def drawProgressBar(indx, length, barLen = 20):
     percent = old_div(float(indx),length)

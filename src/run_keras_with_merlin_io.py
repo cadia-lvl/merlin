@@ -192,8 +192,8 @@ class KerasClass(object):
 
         self.MAKELAB = cfg.MAKELAB  # make binary labels (required step before normalization and training)
         self.NORMDATA = cfg.NORMDATA  # normalizes input and output data, creates data scaling objects
-        self.TRAINMODEL = cfg.TRAINMODEL  # train the Keras model
-        self.TESTMODEL = cfg.TESTMODEL  # test the Keras model
+        self.TRAINDNN = cfg.TRAINDNN  # train the Keras model
+        self.TESTDNN = cfg.TESTDNN  # test the Keras model
 
         # ----------------------------------------------------------
         # ------------------- Define Keras Model -------------------
@@ -210,8 +210,10 @@ class KerasClass(object):
         print('preparing label data (input) using standard HTS style labels')
 
         # If these files already exist, don't perform
-        self.label_normaliser.perform_normalisation(self.inp_feat_file_list, self.bin_lab_file_list,
-                                                    label_type=self.label_type)
+
+        if not os.path.isfile(self.bin_lab_file_list[-1]):
+            self.label_normaliser.perform_normalisation(self.inp_feat_file_list, self.bin_lab_file_list,
+                                                        label_type=self.label_type)
 
         # TODO: Additional features may be added in the future... parts of speech?  Some context for intonation?
         # if cfg.additional_features:
@@ -229,9 +231,10 @@ class KerasClass(object):
         #         binary_label_file_list = out_feat_file_list
 
         # This silence remover has little to no effect, no change in file 1
-        remover = SilenceRemover(n_cmp=self.inp_dim, silence_pattern=cfg.silence_pattern, label_type=cfg.label_type,
-                                 remove_frame_features=cfg.add_frame_features, subphone_feats=cfg.subphone_feats)
-        remover.remove_silence(self.bin_lab_file_list, self.inp_feat_file_list, self.bin_lab_nosilence_file_list)
+        if not os.path.isfile(self.bin_lab_nosilence_file_list[-1]):
+            remover = SilenceRemover(n_cmp=self.inp_dim, silence_pattern=cfg.silence_pattern, label_type=cfg.label_type,
+                                     remove_frame_features=cfg.add_frame_features, subphone_feats=cfg.subphone_feats)
+            remover.remove_silence(self.bin_lab_file_list, self.inp_feat_file_list, self.bin_lab_nosilence_file_list)
 
     def normalize_data(self):
 
@@ -279,16 +282,20 @@ class KerasClass(object):
                                                                             self.inp_dim, self.out_dim, sequential_training=self.sequential_training)
 
         #### normalize the data ####
-        data_utils.norm_data(train_x, self.inp_scaler, sequential_training=self.sequential_training)
-        data_utils.norm_data(train_y, self.out_scaler, sequential_training=self.sequential_training)
-        data_utils.norm_data(valid_x, self.inp_scaler, sequential_training=self.sequential_training)
-        data_utils.norm_data(valid_y, self.out_scaler, sequential_training=self.sequential_training)
+        train_x = data_utils.norm_data(train_x, self.inp_scaler, sequential_training=self.sequential_training)
+        train_y = data_utils.norm_data(train_y, self.out_scaler, sequential_training=self.sequential_training)
+        valid_x = data_utils.norm_data(valid_x, self.inp_scaler, sequential_training=self.sequential_training)
+        valid_y = data_utils.norm_data(valid_y, self.out_scaler, sequential_training=self.sequential_training)
 
         #### train the model ####
         print('training...')
         if not self.sequential_training:
             ### Train feedforward model ###
-            self.keras_models.train_feedforward_model(train_x, train_y, valid_x, valid_y, batch_size=self.batch_size, num_of_epochs=self.num_of_epochs, shuffle_data=self.shuffle_data)
+            self.keras_models.train_feedforward_model(train_x, train_y,
+                                                      valid_x, valid_y,
+                                                      batch_size=self.batch_size,
+                                                      num_of_epochs=self.num_of_epochs,
+                                                      shuffle_data=self.shuffle_data)
         else:
             ### Train recurrent model ###
             print(('training algorithm: %d' % (self.training_algo)))
@@ -320,10 +327,10 @@ class KerasClass(object):
         if self.NORMDATA:
             self.normalize_data()
 
-        if self.TRAINMODEL:
+        if self.TRAINDNN:
             self.train_keras_model()
 
-        if self.TESTMODEL:
+        if self.TESTDNN:
             self.test_keras_model()
 
 if __name__ == "__main__":

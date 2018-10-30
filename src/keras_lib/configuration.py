@@ -284,8 +284,8 @@ class configuration(object):
             ('GenTestList', False, 'Processes', 'GenTestList'),
 
             ('NORMDATA'   , False, 'Processes', 'NORMDATA'),
-            ('TRAINMODEL' , False, 'Processes', 'TRAINMODEL'),
-            ('TESTMODEL'  , False, 'Processes', 'TESTMODEL'),
+            ('TRAINDNN' , False, 'Processes', 'TRAINDNN'),
+            ('TESTDNN'  , False, 'Processes', 'TESTDNN'),
             ('MAKELAB', False, 'Processes', 'MAKELAB'),
 
         ]
