@@ -171,6 +171,9 @@ class configuration(object):
         self.out_feat_dir_dur_norm = os.path.join(self.data_dir, 'dur_norm')
         self.out_feat_dir_cmp_norm = os.path.join(self.data_dir, 'cmp_norm')
 
+        self.nn_cmp_dir = os.path.join(self.data_dir, 'nn_cmp')
+        self.nn_cmp_norm_dir = os.path.join(self.data_dir, 'nn_norm_cmp')
+
         # ---------------------------------------------------
         # ------------------- Input data -------------------
         # ---------------------------------------------------
@@ -241,15 +244,28 @@ class configuration(object):
 
             ('mgc_dim', 60, 'Input-Output', 'mgc'),
             ('lf0_dim', 1, 'Input-Output', 'lf0'),
-            ('bap_dim', 25, 'Input-Output', 'bap'),
+            ('bap_dim', 5, 'Input-Output', 'bap'),
+            ('dmgc_dim', 180, 'Input-Output', 'mgc'),
+            ('dlf0_dim', 3, 'Input-Output', 'lf0'),
+            ('dbap_dim', 15, 'Input-Output', 'bap'),
             ('dur_dim', 5, 'Input-Output', 'cmp'),
-            ('cmp_dim', 60 + 1 + 25, 'Input-Output', 'cmp'),
+            ('cmp_dim', 60*3 + 1*3 + 5*3, 'Input-Output', 'cmp'),
 
             ('inp_file_ext', '.lab', 'Input-Output', 'inp_file_ext'),
             ('out_file_ext', '.cmp', 'Input-Output', 'out_file_ext'),
 
-            ('inp_norm', 'MINMAX', 'Input-Output', 'inp_norm'),
-            ('out_norm', 'MINMAX', 'Input-Output', 'out_norm'),
+            ('mgc_ext', '.mgc', 'Input-Output', 'mgc_ext'),
+            ('bap_ext', '.bap', 'Input-Output', 'bap_ext'),
+            ('lf0_ext', '.lf0', 'Input-Output', 'lf0_ext'),
+            ('cmp_ext', '.cmp', 'Input-Output', 'cmp_ext'),
+            ('lab_ext', '.lab', 'Input-Output', 'lab_ext'),
+            ('utt_ext', '.utt', 'Input-Output', 'utt_ext'),
+            ('stepw_ext', '.stepw', 'Input-Output', 'stepw_ext'),
+            ('sp_ext', '.sp', 'Input-Output', 'sp_ext'),
+            ('dur_ext', '.dur', 'Input-Output', 'dur_ext'),
+
+            ('inp_norm', 'MVN', 'Input-Output', 'inp_norm'),
+            ('out_norm', 'MVN', 'Input-Output', 'out_norm'),
 
             # Architecture
             ('hidden_layer_type', ['TANH', 'TANH', 'TANH', 'TANH', 'TANH', 'TANH'], 'Architecture', 'hidden_layer_type'),
@@ -287,11 +303,12 @@ class configuration(object):
             ('TRAINDNN' , False, 'Processes', 'TRAINDNN'),
             ('TESTDNN'  , False, 'Processes', 'TESTDNN'),
             ('MAKELAB', False, 'Processes', 'MAKELAB'),
+            ('MAKECMP', False, 'Processes', 'MAKECMP'),
 
         ]
 
         # this uses exec(...) which is potentially dangerous since arbitrary code could be executed
-        for (variable,default,section,option) in user_options:
+        for (variable, default, section, option) in user_options:
             # default value
             value=None
 
@@ -311,7 +328,6 @@ class configuration(object):
                 else:
                     value = default
                     user_or_default='default'
-
 
             if type(default) == str:
                 exec('self.%s = "%s"'      % (variable,value))
@@ -339,7 +355,7 @@ class configuration(object):
         # get a logger
         logger = logging.getLogger("configuration")
 
-        ## create directories if not exists
+        # create directories if not exists
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
 
@@ -397,7 +413,39 @@ class configuration(object):
 
         # rnn params
         self.rnn_params = {}
-        self.rnn_params['merge_size']   = self.merge_size
-        self.rnn_params['seq_length']   = self.seq_length
+        self.rnn_params['merge_size'] = self.merge_size
+        self.rnn_params['seq_length'] = self.seq_length
         self.rnn_params['bucket_range'] = self.bucket_range
-        self.rnn_params['stateful']     = self.stateful
+        self.rnn_params['stateful'] = self.stateful
+
+        # Process critical Input-Output parameters necessary for acoustic data composition
+        self.cmp_dim = 0  # number of features in the NN output
+        self.in_dir_dict = {}   # where the raw acoustic feature files are found
+        self.file_extension_dict = {}  # dictionary of file extensions (so that the acoustic feature files can be found)
+        self.out_dimension_dict = {}  # Number of dimensions in the NN output (includes delta and acc window data)
+        self.in_dimension_dict = {}
+        for feat in self.output_features:
+            # The directory with the output features should always be the same
+            if feat == 'mgc':
+                self.cmp_dim += self.dmgc_dim
+                self.file_extension_dict[feat] = self.mgc_ext
+                self.in_dir_dict[feat] = self.out_feat_dir_cmp
+                self.out_dimension_dict[feat] = self.dmgc_dim
+                self.in_dimension_dict[feat] = self.mgc_dim
+            elif feat == 'bap':
+                self.cmp_dim += self.dbap_dim
+                self.file_extension_dict[feat] = self.bap_ext
+                self.in_dir_dict[feat] = self.out_feat_dir_cmp
+                self.out_dimension_dict[feat] = self.dbap_dim
+                self.in_dimension_dict[feat] = self.bap_dim
+            elif feat == 'lf0':
+                self.cmp_dim += self.dlf0_dim
+                self.file_extension_dict[feat] = self.lf0_ext
+                self.in_dir_dict[feat] = self.out_feat_dir_cmp
+                self.out_dimension_dict[feat] = self.dlf0_dim
+                self.in_dimension_dict[feat] = self.lf0_dim
+
+            # The "voiced un-voiced" feature is added independent of any vocoder output files
+            elif feat == 'vuv':
+                self.cmp_dim += 1
+                self.out_dimension_dict[feat] = 1

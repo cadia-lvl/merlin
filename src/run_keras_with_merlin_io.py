@@ -116,6 +116,8 @@ class KerasClass(object):
             # Output
             self.out_feat_dir = cfg.out_feat_dir_cmp
             self.out_feat_dir_norm = cfg.out_feat_dir_cmp_norm
+            self.nn_cmp_dir = cfg.nn_cmp_dir
+            self.nn_cmp_norm_dir = cfg.nn_cmp_norm_dir
 
         else:
             print("invalid model output type")
@@ -161,23 +163,35 @@ class KerasClass(object):
 
         # Create train, valid and test file lists
         self.file_id_list = data_utils.read_file_list(self.file_id_scp)
-
         self.train_id_list = self.file_id_list[0: train_file_number]
         self.valid_id_list = self.file_id_list[train_file_number: train_file_number + valid_file_number]
         self.test_id_list = self.file_id_list[train_file_number + valid_file_number: train_file_number + valid_file_number + test_file_number]
 
+        # For the final cmp files generated for NN
+        self.nn_cmp_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.nn_cmp_dir, cfg.cmp_ext)
+        self.nn_cmp_norm_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.nn_cmp_norm_dir,
+                                                                       cfg.cmp_ext)
         # TODO: should the binary labels be split into training test validate as well?  These files only pertain to labels/input, the output data is already binary
         self.inp_feat_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.inp_feat_dir, inp_file_ext)
         self.bin_lab_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.bin_lab_dir, inp_file_ext)
         self.bin_lab_nosilence_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
 
         # Train, test, validation file lists
-        self.inp_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.bin_lab_dir, inp_file_ext)
-        self.out_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.out_feat_dir, out_file_ext)
-        self.inp_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.bin_lab_dir, inp_file_ext)
-        self.out_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.out_feat_dir, out_file_ext)
-        self.inp_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.bin_lab_dir, inp_file_ext)
-        self.out_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.out_feat_dir, out_file_ext)
+        self.inp_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
+        self.out_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.nn_cmp_dir, out_file_ext)
+        self.inp_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
+        self.out_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.nn_cmp_dir, out_file_ext)
+        self.inp_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
+        self.out_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.nn_cmp_dir, out_file_ext)
+
+
+
+        self.in_file_list_dict = {}
+        for feature_name in list(cfg.in_dir_dict.keys()):
+            self.in_file_list_dict[feature_name] = data_utils.prepare_file_path_list(self.file_id_list,
+                                                                                     cfg.in_dir_dict[feature_name],
+                                                                                     cfg.file_extension_dict[feature_name],
+                                                                                     False)
 
         # self.gen_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, pred_feat_dir, out_file_ext)
 
@@ -191,6 +205,7 @@ class KerasClass(object):
         # ------------------------------------------------------
 
         self.MAKELAB = cfg.MAKELAB  # make binary labels (required step before normalization and training)
+        self.MAKECMP = cfg.MAKECMP
         self.NORMDATA = cfg.NORMDATA  # normalizes input and output data, creates data scaling objects
         self.TRAINDNN = cfg.TRAINDNN  # train the Keras model
         self.TESTDNN = cfg.TESTDNN  # test the Keras model
@@ -199,6 +214,7 @@ class KerasClass(object):
         # ------------------- Define Keras Model -------------------
         # ----------------------------------------------------------
 
+        # TODO: go into TrainKerasModels and implement plotting, we want to see the training and validation error
         self.keras_models = TrainKerasModels(self.inp_dim, self.hidden_layer_size, self.out_dim, self.hidden_layer_type,
                                                 output_type=self.output_layer_type, dropout_rate=self.dropout_rate,
                                                 loss_function=self.loss_function, optimizer=self.optimizer,
@@ -209,9 +225,8 @@ class KerasClass(object):
         # simple HTS labels
         print('preparing label data (input) using standard HTS style labels')
 
-        # If these files already exist, don't perform
-
         if not os.path.isfile(self.bin_lab_file_list[-1]):
+            # This does not normalize the data as the name suggests, rather translates it to binary
             self.label_normaliser.perform_normalisation(self.inp_feat_file_list, self.bin_lab_file_list,
                                                         label_type=self.label_type)
 
@@ -235,6 +250,23 @@ class KerasClass(object):
             remover = SilenceRemover(n_cmp=self.inp_dim, silence_pattern=cfg.silence_pattern, label_type=cfg.label_type,
                                      remove_frame_features=cfg.add_frame_features, subphone_feats=cfg.subphone_feats)
             remover.remove_silence(self.bin_lab_file_list, self.inp_feat_file_list, self.bin_lab_nosilence_file_list)
+
+    def make_cmp(self):
+
+        # TODO: Get the delta and acceleration windows from the recipe file.
+        acoustic_worker = AcousticComposition(delta_win=[-0.5, 0.0, 0.5], acc_win=[1.0, -2.0, 1.0])
+
+        # TODO: Lets try this at some point
+        # if 'dur' in list(cfg.in_dir_dict.keys()) and cfg.AcousticModel:
+        #     acoustic_worker.make_equal_frames(dur_file_list, lf0_file_list, cfg.in_dimension_dict)
+        acoustic_worker.prepare_nn_data(self.in_file_list_dict, self.nn_cmp_file_list,
+                                        cfg.in_dimension_dict, cfg.out_dimension_dict)
+
+        remover = SilenceRemover(n_cmp=cfg.cmp_dim, silence_pattern=cfg.silence_pattern, label_type=cfg.label_type,
+                                 remove_frame_features=cfg.add_frame_features, subphone_feats=cfg.subphone_feats)
+        remover.remove_silence(self.nn_cmp_file_list[0:cfg.train_file_number + cfg.valid_file_number],
+                               self.inp_feat_file_list[0:cfg.train_file_number + cfg.valid_file_number],
+                               self.nn_cmp_file_list[0:cfg.train_file_number + cfg.valid_file_number])  # save to itself
 
     def normalize_data(self):
 
@@ -265,6 +297,7 @@ class KerasClass(object):
                                                             method=self.out_norm)
 
     def train_keras_model(self):
+
         #### define the model ####
         if not self.sequential_training:
             self.keras_models.define_feedforward_model()
@@ -275,11 +308,15 @@ class KerasClass(object):
 
         #### load the data ####
         print('preparing train_x, train_y from input and output feature files...')
-        train_x, train_y, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list, self.out_train_file_list,
-                                                                            self.inp_dim, self.out_dim, sequential_training=self.sequential_training)
+        train_x, train_y, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list,
+                                                                           self.out_train_file_list,
+                                                                           self.inp_dim, self.out_dim,
+                                                                           sequential_training=self.sequential_training)
         print('preparing valid_x, valid_y from input and output feature files...')
-        valid_x, valid_y, valid_flen = data_utils.read_data_from_file_list(self.inp_valid_file_list, self.out_valid_file_list,
-                                                                            self.inp_dim, self.out_dim, sequential_training=self.sequential_training)
+        valid_x, valid_y, valid_flen = data_utils.read_data_from_file_list(self.inp_valid_file_list,
+                                                                           self.out_valid_file_list,
+                                                                           self.inp_dim, self.out_dim,
+                                                                           sequential_training=self.sequential_training)
 
         #### normalize the data ####
         train_x = data_utils.norm_data(train_x, self.inp_scaler, sequential_training=self.sequential_training)
@@ -299,8 +336,12 @@ class KerasClass(object):
         else:
             ### Train recurrent model ###
             print(('training algorithm: %d' % (self.training_algo)))
-            self.keras_models.train_sequence_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size=self.batch_size, num_of_epochs=self.num_of_epochs,
-                                                                                        shuffle_data=self.shuffle_data, training_algo=self.training_algo)
+            self.keras_models.train_sequence_model(train_x, train_y, valid_x,
+                                                   valid_y, train_flen,
+                                                   batch_size=self.batch_size,
+                                                   num_of_epochs=self.num_of_epochs,
+                                                   shuffle_data=self.shuffle_data,
+                                                   training_algo=self.training_algo)
 
         #### store the model ####
         self.keras_models.save_model(self.json_model_file, self.h5_model_file)
@@ -320,9 +361,13 @@ class KerasClass(object):
         self.keras_models.predict(test_x, self.out_scaler, self.gen_test_file_list, self.sequential_training)
 
     def main_function(self):
+
         ### Implement each module ###
         if self.MAKELAB:
             self.make_labels()
+
+        if self.MAKECMP:
+            self.make_cmp()
 
         if self.NORMDATA:
             self.normalize_data()
