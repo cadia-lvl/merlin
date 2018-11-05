@@ -44,6 +44,7 @@ from past.utils import old_div
 import os, sys
 import random
 import numpy as np
+from keras import callbacks
 
 from io_funcs.binary_io import BinaryIOCollection
 
@@ -65,8 +66,14 @@ class TrainKerasModels(kerasModels):
 
         pass;
 
-    def train_feedforward_model(self, train_x, train_y, valid_x, valid_y, batch_size=256, num_of_epochs=10, shuffle_data=True):
-        self.model.fit(train_x, train_y, batch_size=batch_size, epochs=num_of_epochs, shuffle=shuffle_data)
+    def train_feedforward_model(self, train_x, train_y, valid_x, valid_y, batch_size=256, num_of_epochs=10, shuffle_data=True, tensorboard_dir='./'):
+
+        tb_callback = callbacks.TensorBoard(log_dir=tensorboard_dir, histogram_freq=1, write_graph=False,
+                                            write_images=False, batch_size=batch_size)
+
+        self.model.fit(x=train_x, y=train_y, validation_data=(valid_x, valid_y),
+                       batch_size=batch_size, epochs=num_of_epochs, shuffle=shuffle_data,
+                       callbacks=[tb_callback])
 
     def train_sequence_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size=1, num_of_epochs=10, shuffle_data=True, training_algo=1):
         if batch_size == 1:
@@ -83,7 +90,7 @@ class TrainKerasModels(kerasModels):
 
         train_file_number = len(train_idx_list)
         for epoch_num in range(num_of_epochs):
-            print(('Epoch: %d/%d ' %(epoch_num+1, num_of_epochs)))
+            print(('Epoch: %d/%d ' % (epoch_num+1, num_of_epochs)))
             file_num = 0
             for file_name in train_idx_list:
                 temp_train_x = train_x[file_name]

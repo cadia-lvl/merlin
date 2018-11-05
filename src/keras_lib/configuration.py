@@ -120,10 +120,12 @@ class configuration(object):
         try:
             self.work_dir = cfgparser.get('Paths', 'work')
             self.data_dir = cfgparser.get('Paths', 'data')
+            self.plot_dir = cfgparser.get('Paths', 'plot')
 
         except (configparser.NoSectionError, configparser.NoOptionError):
             self.work_dir = None
             self.data_dir = None
+            self.plot_dir = None
             logger.critical('Paths:work has no value!')
             raise Exception
 
@@ -206,6 +208,7 @@ class configuration(object):
             # General paths
             ('work_dir', self.work_dir, 'Paths', 'work'),
             ('data_dir', self.data_dir, 'Paths', 'data'),
+            ('plot_dir', self.model_dir, 'Paths', 'plot'),
             ('model_dir', self.model_dir, 'Paths', 'models'),
             ('stats_dir', self.stats_dir, 'Paths', 'stats'),
             ('gen_dir', self.gen_dir, 'Paths', 'gen'),

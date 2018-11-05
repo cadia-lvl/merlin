@@ -64,7 +64,7 @@ class kerasModels(object):
         :type n_out: Integrer
         """
 
-        self.n_in  = int(n_in)
+        self.n_in = int(n_in)
         self.n_out = int(n_out)
 
         self.n_layers = len(hidden_layer_size)
@@ -74,10 +74,10 @@ class kerasModels(object):
 
         assert len(self.hidden_layer_size) == len(self.hidden_layer_type)
 
-        self.output_type   = output_type
-        self.dropout_rate  = dropout_rate
+        self.output_type = output_type
+        self.dropout_rate = dropout_rate
         self.loss_function = loss_function
-        self.optimizer     = optimizer
+        self.optimizer = optimizer
 
         # create model
         self.model = Sequential()

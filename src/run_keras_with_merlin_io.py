@@ -91,7 +91,7 @@ class KerasClass(object):
         # ---------------------------------------------------
         # ------------------- Directories -------------------
         # ---------------------------------------------------
-
+        self.plot_dir = cfg.plot_dir
         # Select data directories based on model input-output type
         if self.model_output_type == 'duration':
 
@@ -216,9 +216,9 @@ class KerasClass(object):
 
         # TODO: go into TrainKerasModels and implement plotting, we want to see the training and validation error
         self.keras_models = TrainKerasModels(self.inp_dim, self.hidden_layer_size, self.out_dim, self.hidden_layer_type,
-                                                output_type=self.output_layer_type, dropout_rate=self.dropout_rate,
-                                                loss_function=self.loss_function, optimizer=self.optimizer,
-                                                rnn_params=self.rnn_params)
+                                             output_type=self.output_layer_type, dropout_rate=self.dropout_rate,
+                                             loss_function=self.loss_function, optimizer=self.optimizer,
+                                             rnn_params=self.rnn_params)
 
     def make_labels(self):
 
@@ -332,7 +332,8 @@ class KerasClass(object):
                                                       valid_x, valid_y,
                                                       batch_size=self.batch_size,
                                                       num_of_epochs=self.num_of_epochs,
-                                                      shuffle_data=self.shuffle_data)
+                                                      shuffle_data=self.shuffle_data,
+                                                      tensorboard_dir=self.plot_dir)
         else:
             ### Train recurrent model ###
             print(('training algorithm: %d' % (self.training_algo)))
