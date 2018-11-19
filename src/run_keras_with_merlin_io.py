@@ -55,7 +55,7 @@ class KerasClass(object):
 
     def __init__(self, cfg):
 
-        # model type
+        # model type (duration or acoustic)
         self.model_output_type = cfg.model_output_type
 
         # ----------------------------------------------------
@@ -63,12 +63,24 @@ class KerasClass(object):
         # ----------------------------------------------------
 
         self.label_type = cfg.label_type
-
+        self.cmp_ext = cfg.cmp_ext
         inp_file_ext = cfg.inp_file_ext
         out_file_ext = cfg.out_file_ext
         self.label_normaliser = HTSLabelNormalisation(question_file_name=cfg.question_file_name,
                                                       add_frame_features=cfg.add_frame_features == 'True',  # must be bool
                                                       subphone_feats=cfg.subphone_feats)
+
+        # Create streams files (they store data from dimension dictionaries for synthesis)
+        in_streams = cfg.in_dimension_dict.keys()
+        indims = [str(cfg.in_dimension_dict[s]) for s in in_streams]
+        out_streams = cfg.out_dimension_dict.keys()
+        outdims = [str(cfg.out_dimension_dict[s]) for s in out_streams]
+
+        with open(os.path.join(cfg.model_dir, 'stream_info.txt'), 'w') as f:
+            f.write(' '.join(in_streams) + '\n')
+            f.write(' '.join(indims) + '\n')
+            f.write(' '.join(out_streams) + '\n')
+            f.write(' '.join(outdims) + '\n')
 
         # Input output dimensions
         self.inp_dim = cfg.inp_dim
@@ -91,7 +103,8 @@ class KerasClass(object):
         # ---------------------------------------------------
         # ------------------- Directories -------------------
         # ---------------------------------------------------
-        self.plot_dir = cfg.plot_dir
+
+        self.plot_dir = os.path.join(cfg.plot_dir, cfg.nnets_file_name)
         # Select data directories based on model input-output type
         if self.model_output_type == 'duration':
 
@@ -114,10 +127,13 @@ class KerasClass(object):
             self.bin_lab_dir_nosilence_norm = cfg.bin_lab_dir_cmp_nosilence_norm
 
             # Output
-            self.out_feat_dir = cfg.out_feat_dir_cmp
-            self.out_feat_dir_norm = cfg.out_feat_dir_cmp_norm
-            self.nn_cmp_dir = cfg.nn_cmp_dir
-            self.nn_cmp_norm_dir = cfg.nn_cmp_norm_dir
+            # self.out_feat_dir = cfg.out_feat_dir_cmp
+            # self.out_feat_dir_norm = cfg.out_feat_dir_cmp_norm
+            self.out_feat_dir = cfg.nn_cmp_dir
+            self.out_feat_dir_norm = cfg.nn_cmp_norm_dir
+
+            # self.nn_cmp_dir = cfg.nn_cmp_dir
+            # self.nn_cmp_norm_dir = cfg.nn_cmp_norm_dir
 
         else:
             print("invalid model output type")
@@ -167,10 +183,6 @@ class KerasClass(object):
         self.valid_id_list = self.file_id_list[train_file_number: train_file_number + valid_file_number]
         self.test_id_list = self.file_id_list[train_file_number + valid_file_number: train_file_number + valid_file_number + test_file_number]
 
-        # For the final cmp files generated for NN
-        self.nn_cmp_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.nn_cmp_dir, cfg.cmp_ext)
-        self.nn_cmp_norm_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.nn_cmp_norm_dir,
-                                                                       cfg.cmp_ext)
         # TODO: should the binary labels be split into training test validate as well?  These files only pertain to labels/input, the output data is already binary
         self.inp_feat_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.inp_feat_dir, inp_file_ext)
         self.bin_lab_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.bin_lab_dir, inp_file_ext)
@@ -178,13 +190,15 @@ class KerasClass(object):
 
         # Train, test, validation file lists
         self.inp_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
-        self.out_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.nn_cmp_dir, out_file_ext)
+        self.out_train_file_list = data_utils.prepare_file_path_list(self.train_id_list, self.out_feat_dir, out_file_ext)
         self.inp_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
-        self.out_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.nn_cmp_dir, out_file_ext)
+        self.out_valid_file_list = data_utils.prepare_file_path_list(self.valid_id_list, self.out_feat_dir, out_file_ext)
         self.inp_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
-        self.out_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.nn_cmp_dir, out_file_ext)
+        self.out_test_file_list = data_utils.prepare_file_path_list(self.test_id_list, self.out_feat_dir, out_file_ext)
 
-
+        # For cmp files generated as targets (applies to acoustic model only)
+        self.nn_cmp_file_list = []
+        self.nn_cmp_norm_file_list = []
 
         self.in_file_list_dict = {}
         for feature_name in list(cfg.in_dir_dict.keys()):
@@ -214,7 +228,6 @@ class KerasClass(object):
         # ------------------- Define Keras Model -------------------
         # ----------------------------------------------------------
 
-        # TODO: go into TrainKerasModels and implement plotting, we want to see the training and validation error
         self.keras_models = TrainKerasModels(self.inp_dim, self.hidden_layer_size, self.out_dim, self.hidden_layer_type,
                                              output_type=self.output_layer_type, dropout_rate=self.dropout_rate,
                                              loss_function=self.loss_function, optimizer=self.optimizer,
@@ -253,6 +266,10 @@ class KerasClass(object):
 
     def make_cmp(self):
 
+        # File lists for the final cmp files (these are re-generated below to fit a precise numpy data array)
+        self.nn_cmp_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.out_feat_dir, self.cmp_ext)
+        self.nn_cmp_norm_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.out_feat_dir_norm,
+                                                                       self.cmp_ext)
         # TODO: Get the delta and acceleration windows from the recipe file.
         acoustic_worker = AcousticComposition(delta_win=[-0.5, 0.0, 0.5], acc_win=[1.0, -2.0, 1.0])
 
@@ -306,6 +323,7 @@ class KerasClass(object):
         else:
             self.keras_models.define_sequence_model()
 
+        # TODO: for large datasets, I might have to batch load the data to memory... I will cross that bridge when it comes
         #### load the data ####
         print('preparing train_x, train_y from input and output feature files...')
         train_x, train_y, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list,
@@ -318,7 +336,7 @@ class KerasClass(object):
                                                                            self.inp_dim, self.out_dim,
                                                                            sequential_training=self.sequential_training)
 
-        #### normalize the data ####
+        #### normalize the data (the input and output scalers need to be already created) ####
         train_x = data_utils.norm_data(train_x, self.inp_scaler, sequential_training=self.sequential_training)
         train_y = data_utils.norm_data(train_y, self.out_scaler, sequential_training=self.sequential_training)
         valid_x = data_utils.norm_data(valid_x, self.inp_scaler, sequential_training=self.sequential_training)
@@ -328,6 +346,7 @@ class KerasClass(object):
         print('training...')
         if not self.sequential_training:
             ### Train feedforward model ###
+
             self.keras_models.train_feedforward_model(train_x, train_y,
                                                       valid_x, valid_y,
                                                       batch_size=self.batch_size,

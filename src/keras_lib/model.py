@@ -174,7 +174,7 @@ class kerasModels(object):
             else:
                 input_size = self.hidden_layer_size[i - 1]
 
-            if hidden_layer_type[i]=='lstm':
+            if self.hidden_layer_type[i]=='lstm':
                 self.model.add(LSTM(
                         units=self.hidden_layer_size[i],
                         batch_input_shape=(batch_size, timesteps, input_size),

@@ -446,7 +446,7 @@ class configuration(object):
             ('use_cep_ap'       ,True                  ,'Waveform'  , 'use_cep_ap'),
             ('do_post_filtering',True                  ,'Waveform'  , 'do_post_filtering'),
             ('apply_GV'         ,False                 ,'Waveform'  , 'apply_GV'),
-            ('test_synth_dir'   ,'test_synthesis/wav'  ,'Waveform'  , 'test_synth_dir'),
+            ('test_synth_dir'   ,'test_synthesis/txt'  ,'Waveform'  , 'test_synth_dir'),
 
             ## For MagPhase Vocoder:
             #('use_magphase_pf'  ,True                 ,'Waveform'  , 'use_magphase_pf'), # Use MagPhase own Post-Filter (experimemental)
@@ -996,11 +996,13 @@ class configuration(object):
                               'output_activation'  : 'linear',
                               'do_pretraining'     : False,
                               'pretraining_epochs' : '10',
-                              'pretraining_lr'     : '0.0001'}
+                              'pretraining_lr'     : '0.0001',
+                              'loss_function'      : 'mse'}
 
         self.hyper_params['warmup_momentum']      = self.warmup_momentum
         self.hyper_params['momentum']             = self.momentum
         self.hyper_params['warmup_epoch']         = self.warmup_epoch
+        self.hyper_params['loss_function']        = self.loss_function
 
 
         self.hyper_params['learning_rate']         = self.learning_rate

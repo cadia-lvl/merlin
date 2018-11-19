@@ -68,6 +68,7 @@ class TrainKerasModels(kerasModels):
 
     def train_feedforward_model(self, train_x, train_y, valid_x, valid_y, batch_size=256, num_of_epochs=10, shuffle_data=True, tensorboard_dir='./'):
 
+        # TODO: tensorboard_dir should drop down a level
         tb_callback = callbacks.TensorBoard(log_dir=tensorboard_dir, histogram_freq=1, write_graph=False,
                                             write_images=False, batch_size=batch_size)
 

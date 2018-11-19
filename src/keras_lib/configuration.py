@@ -121,6 +121,7 @@ class configuration(object):
             self.work_dir = cfgparser.get('Paths', 'work')
             self.data_dir = cfgparser.get('Paths', 'data')
             self.plot_dir = cfgparser.get('Paths', 'plot')
+            self.model_output_type = cfgparser.get('Input-Output', 'model_output_type')
 
         except (configparser.NoSectionError, configparser.NoOptionError):
             self.work_dir = None
@@ -129,11 +130,15 @@ class configuration(object):
             logger.critical('Paths:work has no value!')
             raise Exception
 
+        # The model must be placed in the processors folder which is copied to the voice folder for synthesis
+        if self.model_output_type == 'duration':
+            self.model_dir = os.path.join(self.data_dir, 'processors', 'duration_predictor')
+        elif self.model_output_type == 'acoustic':
+            self.model_dir = os.path.join(self.data_dir, 'processors', 'acoustic_predictor')
+
         # default place for some data
         self.keras_dir = os.path.join(self.work_dir, 'keras')
-
         self.gen_dir = os.path.join(self.keras_dir, 'gen')
-        self.model_dir = os.path.join(self.keras_dir, 'models')
         self.stats_dir = os.path.join(self.keras_dir, 'stats')
 
         self.question_file_name = cfgparser.get('Labels', 'question_file_name')
@@ -369,8 +374,8 @@ class configuration(object):
             os.makedirs(self.gen_dir)
 
         # input-output normalization stat files
-        self.inp_stats_file = os.path.join(self.stats_dir, "input_%d_%s.norm" %(int(self.train_file_number), self.inp_norm))
-        self.out_stats_file = os.path.join(self.stats_dir, "output_%d_%s.norm" %(int(self.train_file_number), self.out_norm))
+        self.inp_stats_file = os.path.join(self.model_dir, "input_%d_%s.norm" %(int(self.train_file_number), self.inp_norm))
+        self.out_stats_file = os.path.join(self.model_dir, "output_%d_%s.norm" %(int(self.train_file_number), self.out_norm))
 
         # define model file name
         if self.sequential_training:

@@ -337,7 +337,7 @@ def compute_norm_stats(data, stats_file, method="MVN", no_scaling_ind=()):
     print(norm_matrix.shape)
     io_funcs.array_to_binary_file(norm_matrix, stats_file)
 
-    # TODO: Why don't we make this a text file? Here it is
+    # TODO: Why don't we make this a text file or pickle? Here it is
     np.savetxt(stats_file + ".csv", norm_matrix, delimiter=",", fmt='%.2f', newline='\n')
 
     return scaler

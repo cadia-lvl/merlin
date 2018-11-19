@@ -136,4 +136,4 @@ class MLParameterGenerationFast(object):
 
             gen_parameter[0:frame_number, d] = mean_traj
 
-        return  gen_parameter
+        return gen_parameter
