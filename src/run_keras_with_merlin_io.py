@@ -41,6 +41,7 @@ from builtins import object
 import os
 import sys
 import time
+import numpy as np
 
 from keras_lib import configuration
 from keras_lib import data_utils
@@ -71,16 +72,16 @@ class KerasClass(object):
                                                       subphone_feats=cfg.subphone_feats)
 
         # Create streams files (they store data from dimension dictionaries for synthesis)
-        in_streams = cfg.in_dimension_dict.keys()
+        in_streams = sorted(cfg.in_dimension_dict.keys())
         indims = [str(cfg.in_dimension_dict[s]) for s in in_streams]
-        out_streams = cfg.out_dimension_dict.keys()
-        outdims = [str(cfg.out_dimension_dict[s]) for s in out_streams]
+        self.out_streams = sorted(cfg.out_dimension_dict.keys())
+        self.outdims = [str(cfg.out_dimension_dict[s]) for s in self.out_streams]
 
         with open(os.path.join(cfg.model_dir, 'stream_info.txt'), 'w') as f:
             f.write(' '.join(in_streams) + '\n')
             f.write(' '.join(indims) + '\n')
-            f.write(' '.join(out_streams) + '\n')
-            f.write(' '.join(outdims) + '\n')
+            f.write(' '.join(self.out_streams) + '\n')
+            f.write(' '.join(self.outdims) + '\n')
 
         # Input output dimensions
         self.inp_dim = cfg.inp_dim
@@ -307,11 +308,17 @@ class KerasClass(object):
                                                             method=self.inp_norm,
                                                             no_scaling_ind=ind)
 
-            # The output values should all be continuous, therefore no scaling is removed
+            # The output values should all be continuous except vuv
             print('computing norm stats for train_y...')
+            # index = np.where([stream == 'vuv' for stream in self.out_streams])
+            # ind = [np.cumsum(self.outdims[0:index])]
+            # TODO: implement robust stream handling in acoustic composition and here
+            vuv_index = self.out_streams.index('vuv')
+            index = [sum([int(num) for num in self.outdims[0:vuv_index]])]
             self.out_scaler = data_utils.compute_norm_stats(train_y,
                                                             self.out_stats_file,
-                                                            method=self.out_norm)
+                                                            method=self.out_norm,
+                                                            no_scaling_ind=index)  # For vuv (the first column)
 
     def train_keras_model(self):
 

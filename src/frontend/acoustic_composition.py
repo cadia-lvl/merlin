@@ -95,9 +95,11 @@ class   AcousticComposition(AcousticBase):
 
         logger = logging.getLogger("acoustic_comp")
 
+        # Determine stream order / placement in the output data matrix
         stream_start_index = {}
         stream_dim_index = 0
-        for stream_name in list(out_dimension_dict.keys()):
+        # Sort the keys to ensure a predictable steam ordering
+        for stream_name in sorted(out_dimension_dict.keys()):
             if stream_name not in stream_start_index:
                 stream_start_index[stream_name] = stream_dim_index
 
