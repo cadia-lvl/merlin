@@ -308,13 +308,13 @@ class KerasClass(object):
                                                             method=self.inp_norm,
                                                             no_scaling_ind=ind)
 
-            # The output values should all be continuous except vuv
+            # The output values should all be continuous except vuv (in acoustic model)
             print('computing norm stats for train_y...')
-            # index = np.where([stream == 'vuv' for stream in self.out_streams])
-            # ind = [np.cumsum(self.outdims[0:index])]
-            # TODO: implement robust stream handling in acoustic composition and here
-            vuv_index = self.out_streams.index('vuv')
-            index = [sum([int(num) for num in self.outdims[0:vuv_index]])]
+            if self.model_output_type == 'acoustic':
+                vuv_index = self.out_streams.index('vuv')
+                index = [sum([int(num) for num in self.outdims[0:vuv_index]])]
+            else:
+                index = []
             self.out_scaler = data_utils.compute_norm_stats(train_y,
                                                             self.out_stats_file,
                                                             method=self.out_norm,
