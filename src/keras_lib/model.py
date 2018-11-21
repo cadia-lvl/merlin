@@ -52,13 +52,7 @@ from keras.utils import multi_gpu_model
 
 class kerasModels(object):
 
-    def __init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type,
-                 output_type='linear',
-                 dropout_rate=0.0,
-                 loss_function='mse',
-                 optimizer='adam',
-                 l1=0.0, l2=0.0,
-                 gpu_num=1):
+    def __init__(self, model_params):
 
         """ This function initialises a neural network
 
@@ -73,21 +67,20 @@ class kerasModels(object):
         :type n_out: Integrer
         """
 
-        self.n_in = int(n_in)
-        self.n_out = int(n_out)
-        self.n_layers = len(hidden_layer_size)
-        self.hidden_layer_size = hidden_layer_size
-        self.hidden_layer_type = hidden_layer_type
+        self.inp_dim = int(model_params['inp_dim'])
+        self.out_dim = int(model_params['out_dim'])
+        self.n_layers = len(model_params['hidden_layer_size'])
+        self.hidden_layer_size = model_params['hidden_layer_size']
+        self.hidden_layer_type = model_params['hidden_layer_type']
+        self.output_type = model_params['output_layer_type']
+        self.dropout_rate = model_params['dropout_rate']
+        self.loss_function = model_params['loss_function']
+        self.l1 = model_params['l1']
+        self.l2 = model_params['l2']
+        self.optimizer = model_params['optimizer']
+        self.gpu_num = model_params['gpu_num']
 
         assert len(self.hidden_layer_size) == len(self.hidden_layer_type)
-
-        self.output_type = output_type
-        self.dropout_rate = dropout_rate
-        self.loss_function = loss_function
-        self.l1 = l1
-        self.l2 = l2
-        self.optimizer = optimizer
-        self.gpu_num = gpu_num
 
         # create model
         self.model = Sequential()
@@ -99,11 +92,9 @@ class kerasModels(object):
         # add hidden layers
         for i in range(self.n_layers):
             if i == 0:
-                input_size = self.n_in
+                input_size = self.inp_dim
             else:
                 input_size = self.hidden_layer_size[i - 1]
-
-
 
             self.model.add(Dense(
                     units=self.hidden_layer_size[i],
@@ -112,12 +103,11 @@ class kerasModels(object):
                     input_dim=input_size,
                     kernel_regularizer=l1_l2(l1=self.l1, l2=self.l2)))
 
-
             self.model.add(Dropout(self.dropout_rate))
 
         # add output layer
-        self.final_layer = self.model.add(Dense(
-            units=self.n_out,
+        self.model.add(Dense(
+            units=self.out_dim,
             activation=self.output_type.lower(),
             kernel_initializer="normal",
             input_dim=self.hidden_layer_size[-1]))
@@ -132,7 +122,7 @@ class kerasModels(object):
         # add hidden layers
         for i in range(self.n_layers):
             if i == 0:
-                input_size = self.n_in
+                input_size = self.inp_dim
             else:
                 input_size = self.hidden_layer_size[i - 1]
 
@@ -165,8 +155,8 @@ class kerasModels(object):
                         input_shape=(None, input_size)))
 
         # add output layer
-        self.final_layer = self.model.add(Dense(
-            units=self.n_out,
+        self.model.add(Dense(
+            units=self.out_dim,
             input_dim=self.hidden_layer_size[-1],
             kernel_initializer='normal',
             activation=self.output_type.lower()))
@@ -185,7 +175,7 @@ class kerasModels(object):
         # add hidden layers
         for i in range(self.n_layers):
             if i == 0:
-                input_size = self.n_in
+                input_size = self.inp_dim
             else:
                 input_size = self.hidden_layer_size[i - 1]
 
@@ -210,8 +200,8 @@ class kerasModels(object):
                         batch_input_shape=(batch_size, timesteps, input_size)))
 
         # add output layer
-        self.final_layer = self.model.add(Dense(
-            units=self.n_out,
+        self.model.add(Dense(
+            units=self.out_dim,
             input_dim=self.hidden_layer_size[-1],
             kernel_initializer='normal',
             activation=self.output_type.lower()))
@@ -222,10 +212,8 @@ class kerasModels(object):
     def compile_model(self):
 
         # Parallelize gpus
-        try:
+        if self.gpu_num > 1:
             self.model = multi_gpu_model(self.model, gpus=self.gpu_num)
-        except:
-            pass
 
         self.model.compile(loss=self.loss_function, optimizer=self.optimizer, metrics=['accuracy'])
 

@@ -46,41 +46,58 @@ import random
 import numpy as np
 from keras import callbacks
 
-from io_funcs.binary_io import BinaryIOCollection
-
 from keras_lib.model import kerasModels
 from keras_lib import data_utils
 
+from io_funcs.binary_io import BinaryIOCollection
+
+
 class TrainKerasModels(kerasModels):
 
-    def __init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type='linear',
-                 dropout_rate=0.0, loss_function='mse', optimizer='adam', l1=0.0, l2=0.0, rnn_params=None, gpu_num=1):
+    def __init__(self, model_params, rnn_params, training_params):
 
-        kerasModels.__init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type,
-                             dropout_rate, loss_function, optimizer, l1, l2, gpu_num)
+        # Subclass Keras model, feed in model parameters
+        kerasModels.__init__(self, model_params)
 
-        # TODO: Find a good way to pass below params
+        # Rnn parameters
         self.merge_size = rnn_params['merge_size']
         self.seq_length = rnn_params['seq_length']
         self.bucket_range = rnn_params['bucket_range']
         self.stateful = rnn_params['stateful']
 
-    def train_feedforward_model(self, train_x, train_y, valid_x, valid_y, batch_size=256, num_of_epochs=10, shuffle_data=True, tensorboard_dir='./'):
+        # Training parameters
+        self.batch_size = training_params['batch_size']
+        self.num_of_epochs = training_params['num_of_epochs']
+        self.shuffle_data = training_params['shuffle_data']
+        self.tensorboard_dir = training_params['tensorboard_dir']
+        self.stopping_patience = training_params['stopping_patience']
+        self.restore_best_weights = training_params['restore_best_weights']
 
-        tb_callback = callbacks.TensorBoard(log_dir=tensorboard_dir, histogram_freq=1, write_graph=False,
-                                            write_images=False, batch_size=batch_size)
+    def train_feedforward_model(self, train_x, train_y, valid_x, valid_y):
 
+        # Set up callbacks
+        tb_callback = callbacks.TensorBoard(log_dir=self.tensorboard_dir, histogram_freq=1, write_graph=False,
+                                            write_images=False, batch_size=self.batch_size)
+        es_callback = callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=self.stopping_patience,
+                                              verbose=0, mode='auto', baseline=None,
+                                              restore_best_weights=self.restore_best_weights)
+
+        # Train the model
         self.model.fit(x=train_x, y=train_y, validation_data=(valid_x, valid_y),
-                       batch_size=batch_size, epochs=num_of_epochs, shuffle=shuffle_data,
-                       callbacks=[tb_callback])
+                       batch_size=self.batch_size, epochs=self.num_of_epochs, shuffle=self.shuffle_data,
+                       callbacks=[tb_callback, es_callback])
 
     def train_sequence_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size=1, num_of_epochs=10, shuffle_data=True, training_algo=1):
+        # TODO: use packaged params
+
         if batch_size == 1:
             self.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y, num_of_epochs, shuffle_data)
         else:
             self.train_recurrent_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data, training_algo)
 
     def train_recurrent_model_batchsize_one(self, train_x, train_y, valid_x, valid_y, num_of_epochs, shuffle_data):
+        # TODO: use packaged params
+
         ### if batch size is equal to 1 ###
         train_idx_list = list(train_x.keys())
         if shuffle_data:
@@ -94,8 +111,8 @@ class TrainKerasModels(kerasModels):
             for file_name in train_idx_list:
                 temp_train_x = train_x[file_name]
                 temp_train_y = train_y[file_name]
-                temp_train_x = np.reshape(temp_train_x, (1, temp_train_x.shape[0], self.n_in))
-                temp_train_y = np.reshape(temp_train_y, (1, temp_train_y.shape[0], self.n_out))
+                temp_train_x = np.reshape(temp_train_x, (1, temp_train_x.shape[0], self.inp_dim))
+                temp_train_y = np.reshape(temp_train_y, (1, temp_train_y.shape[0], self.out_dim))
                 self.model.train_on_batch(temp_train_x, temp_train_y)
                 #self.model.fit(temp_train_x, temp_train_y, epochs=1, shuffle=False, verbose=0)
                 file_num += 1
@@ -104,6 +121,7 @@ class TrainKerasModels(kerasModels):
             sys.stdout.write("\n")
 
     def train_recurrent_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data, training_algo):
+        # TODO: use packaged params
         ### if batch size more than 1 ###
         if training_algo == 1:
             self.train_padding_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data)
@@ -118,8 +136,8 @@ class TrainKerasModels(kerasModels):
             print("3. Split model   -- split utterances to a fixed sequence length")
             sys.exit(1)
 
-    
     def train_padding_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data):
+        # TODO: use packaged params
         ### Method 1 ###
         train_id_list = list(train_flen['utt2framenum'].keys())
         if shuffle_data:
@@ -145,6 +163,7 @@ class TrainKerasModels(kerasModels):
             print(" Validation error: %.3f" % (self.get_validation_error(valid_x, valid_y)))
     
     def train_bucket_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data):
+        # TODO: use packaged params
         ### Method 2 ###
         train_fnum_list  = np.array(list(train_flen['framenum2utt'].keys()))
         train_range_list = list(range(min(train_fnum_list), max(train_fnum_list)+1, self.bucket_range))
@@ -175,6 +194,7 @@ class TrainKerasModels(kerasModels):
             print(" Validation error: %.3f" % (self.get_validation_error(valid_x, valid_y)))
 
     def train_split_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data):
+        # TODO: use packaged params
         ### Method 3 ###
         train_id_list = list(train_flen['utt2framenum'].keys())
         if shuffle_data:
@@ -254,11 +274,11 @@ class TrainKerasModels(kerasModels):
             if stateful:
                 temp_valid_x = data_utils.get_stateful_input(temp_valid_x, self.seq_length, self.batch_size)
             elif sequential_training:
-                temp_valid_x = np.reshape(temp_valid_x, (1, num_of_rows, self.n_in))
+                temp_valid_x = np.reshape(temp_valid_x, (1, num_of_rows, self.inp_dim))
 
             predictions = self.model.predict(temp_valid_x)
             if sequential_training:
-                predictions = np.reshape(predictions, (num_of_rows, self.n_out))
+                predictions = np.reshape(predictions, (num_of_rows, self.out_dim))
 
             valid_error += np.mean(np.sum((predictions - temp_valid_y) ** 2, axis=1))
 
@@ -281,11 +301,11 @@ class TrainKerasModels(kerasModels):
             if stateful:
                 temp_test_x = data_utils.get_stateful_input(temp_test_x, self.seq_length, self.batch_size)
             elif sequential_training:
-                temp_test_x = np.reshape(temp_test_x, (1, num_of_rows, self.n_in))
+                temp_test_x = np.reshape(temp_test_x, (1, num_of_rows, self.inp_dim))
 
             predictions = self.model.predict(temp_test_x)
             if sequential_training:
-                predictions = np.reshape(predictions, (num_of_rows, self.n_out))
+                predictions = np.reshape(predictions, (num_of_rows, self.out_dim))
 
             data_utils.denorm_data(predictions, out_scaler)
 

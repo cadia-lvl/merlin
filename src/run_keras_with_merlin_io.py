@@ -128,13 +128,8 @@ class KerasClass(object):
             self.bin_lab_dir_nosilence_norm = cfg.bin_lab_dir_cmp_nosilence_norm
 
             # Output
-            # self.out_feat_dir = cfg.out_feat_dir_cmp
-            # self.out_feat_dir_norm = cfg.out_feat_dir_cmp_norm
             self.out_feat_dir = cfg.nn_cmp_dir
             self.out_feat_dir_norm = cfg.nn_cmp_norm_dir
-
-            # self.nn_cmp_dir = cfg.nn_cmp_dir
-            # self.nn_cmp_norm_dir = cfg.nn_cmp_norm_dir
 
         else:
             print("invalid model output type")
@@ -144,31 +139,10 @@ class KerasClass(object):
         # ------------------- Model Parameters -------------------
         # --------------------------------------------------------
 
-        self.hidden_layer_type = cfg.hidden_layer_type
-        self.hidden_layer_size = cfg.hidden_layer_size
-
-        self.sequential_training = cfg.sequential_training
-
-        self.stateful = cfg.stateful
-        self.batch_size = cfg.batch_size
-        self.seq_length = cfg.seq_length
-
-        self.training_algo = cfg.training_algo
-        self.shuffle_data = cfg.shuffle_data
-
-        self.output_layer_type = cfg.output_layer_type
-        self.loss_function = cfg.loss_function
-        self.optimizer = cfg.optimizer
-
-        self.rnn_params = cfg.rnn_params
-        self.dropout_rate = cfg.dropout_rate
-        self.num_of_epochs = cfg.num_of_epochs
+        self.sequential_training = cfg.sequential_training  # Not used currently
 
         self.json_model_file = cfg.json_model_file
         self.h5_model_file = cfg.h5_model_file
-
-        self.l1 = cfg.l1_reg
-        self.l2 = cfg.l2_reg
 
         # -----------------------------------------------------------
         # ------------------- Generate file lists -------------------
@@ -187,7 +161,7 @@ class KerasClass(object):
         self.valid_id_list = self.file_id_list[train_file_number: train_file_number + valid_file_number]
         self.test_id_list = self.file_id_list[train_file_number + valid_file_number: train_file_number + valid_file_number + test_file_number]
 
-        # TODO: should the binary labels be split into training test validate as well?  These files only pertain to labels/input, the output data is already binary
+        # Intermediate file lists
         self.inp_feat_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.inp_feat_dir, inp_file_ext)
         self.bin_lab_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.bin_lab_dir, inp_file_ext)
         self.bin_lab_nosilence_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.bin_lab_dir_nosilence, inp_file_ext)
@@ -232,10 +206,34 @@ class KerasClass(object):
         # ------------------- Define Keras Model -------------------
         # ----------------------------------------------------------
 
-        self.keras_models = TrainKerasModels(self.inp_dim, self.hidden_layer_size, self.out_dim, self.hidden_layer_type,
-                                             output_type=self.output_layer_type, dropout_rate=self.dropout_rate,
-                                             loss_function=self.loss_function, optimizer=self.optimizer,
-                                             l1=self.l1, l2=self.l2, rnn_params=self.rnn_params, gpu_num=cfg.gpu_num)
+        model_params = {'inp_dim': self.inp_dim,
+                        'hidden_layer_size': cfg.hidden_layer_size,
+                        'out_dim': self.out_dim,
+                        'hidden_layer_type': cfg.hidden_layer_type,
+                        'output_layer_type': cfg.output_layer_type,
+                        'dropout_rate': cfg.dropout_rate,
+                        'loss_function': cfg.loss_function,
+                        'optimizer': cfg.optimizer,
+                        'l1': cfg.l1,
+                        'l2': cfg.l2,
+                        'gpu_num': cfg.gpu_num}
+
+        rnn_params = {'merge_size': cfg.merge_size,
+                      'seq_length': cfg.seq_length,
+                      'bucket_range': cfg.bucket_range,
+                      'stateful': cfg.stateful,
+                      'training_algo': cfg.training_algo}
+
+        training_params = {'batch_size': cfg.batch_size,
+                           'num_of_epochs': cfg.num_of_epochs,
+                           'shuffle_data': cfg.shuffle_data,
+                           'tensorboard_dir': cfg.plot_dir,
+                           'stopping_patience': cfg.stopping_patience,
+                           'restore_best_weights': cfg.restore_best_weights}
+
+        self.keras_models = TrainKerasModels(model_params=model_params,
+                                             rnn_params=rnn_params,
+                                             training_params=training_params)
 
     def make_labels(self):
 
@@ -355,16 +353,10 @@ class KerasClass(object):
         #### train the model ####
         print('training...')
         if not self.sequential_training:
-            ### Train feedforward model ###
-
-            self.keras_models.train_feedforward_model(train_x, train_y,
-                                                      valid_x, valid_y,
-                                                      batch_size=self.batch_size,
-                                                      num_of_epochs=self.num_of_epochs,
-                                                      shuffle_data=self.shuffle_data,
-                                                      tensorboard_dir=self.plot_dir)
+            # Train feedforward model
+            self.keras_models.train_feedforward_model(train_x, train_y, valid_x, valid_y)
         else:
-            ### Train recurrent model ###
+            # Train recurrent model
             print(('training algorithm: %d' % (self.training_algo)))
             self.keras_models.train_sequence_model(train_x, train_y, valid_x,
                                                    valid_y, train_flen,
@@ -377,6 +369,9 @@ class KerasClass(object):
         self.keras_models.save_model(self.json_model_file, self.h5_model_file)
 
     def test_keras_model(self):
+
+        # TODO: Overhaul this function
+
         #### load the model ####
         self.keras_models.load_model(self.json_model_file, self.h5_model_file)
 

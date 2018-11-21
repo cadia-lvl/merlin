@@ -281,6 +281,8 @@ class configuration(object):
 
             ('batch_size'   , 256, 'Architecture', 'batch_size'),
             ('num_of_epochs',   1, 'Architecture', 'training_epochs'),
+            ('stopping_patience', 10, 'Architecture', 'stopping_patience'),
+            ('restore_best_weights', True, 'Architecture', 'restore_best_weights'),
             ('dropout_rate' , 0.0, 'Architecture', 'dropout_rate'),
             ('l1_reg', 0.0, 'Architecture', 'l1_reg'),
             ('l2_reg', 0.0, 'Architecture', 'l2_reg'),
@@ -424,11 +426,11 @@ class configuration(object):
                 self.batch_size = 25 ## num. of sentences in this case
 
         # rnn params
-        self.rnn_params = {}
-        self.rnn_params['merge_size'] = self.merge_size
-        self.rnn_params['seq_length'] = self.seq_length
-        self.rnn_params['bucket_range'] = self.bucket_range
-        self.rnn_params['stateful'] = self.stateful
+        # self.rnn_params = {}
+        # self.rnn_params['merge_size'] = self.merge_size
+        # self.rnn_params['seq_length'] = self.seq_length
+        # self.rnn_params['bucket_range'] = self.bucket_range
+        # self.rnn_params['stateful'] = self.stateful
 
         # Process critical Input-Output parameters necessary for acoustic data composition
         self.cmp_dim = 0  # number of features in the NN output
