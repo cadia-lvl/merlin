@@ -47,10 +47,19 @@ from keras.models import Sequential
 from keras.models import model_from_json
 from keras.layers import Dense, SimpleRNN, GRU, LSTM
 from keras.layers import Dropout
+from keras.regularizers import l1_l2
+from keras.utils import multi_gpu_model
 
 class kerasModels(object):
 
-    def __init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type='linear', dropout_rate=0.0, loss_function='mse', optimizer='adam'):
+    def __init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type,
+                 output_type='linear',
+                 dropout_rate=0.0,
+                 loss_function='mse',
+                 optimizer='adam',
+                 l1=0.0, l2=0.0,
+                 gpu_num=1):
+
         """ This function initialises a neural network
 
         :param n_in: Dimensionality of input features
@@ -66,9 +75,7 @@ class kerasModels(object):
 
         self.n_in = int(n_in)
         self.n_out = int(n_out)
-
         self.n_layers = len(hidden_layer_size)
-
         self.hidden_layer_size = hidden_layer_size
         self.hidden_layer_type = hidden_layer_type
 
@@ -77,7 +84,10 @@ class kerasModels(object):
         self.output_type = output_type
         self.dropout_rate = dropout_rate
         self.loss_function = loss_function
+        self.l1 = l1
+        self.l2 = l2
         self.optimizer = optimizer
+        self.gpu_num = gpu_num
 
         # create model
         self.model = Sequential()
@@ -93,11 +103,16 @@ class kerasModels(object):
             else:
                 input_size = self.hidden_layer_size[i - 1]
 
+
+
             self.model.add(Dense(
                     units=self.hidden_layer_size[i],
                     activation=self.hidden_layer_type[i],
                     kernel_initializer="normal",
-                    input_dim=input_size))
+                    input_dim=input_size,
+                    kernel_regularizer=l1_l2(l1=self.l1, l2=self.l2)))
+
+
             self.model.add(Dropout(self.dropout_rate))
 
         # add output layer
@@ -205,6 +220,13 @@ class kerasModels(object):
         self.compile_model()
 
     def compile_model(self):
+
+        # Parallelize gpus
+        try:
+            self.model = multi_gpu_model(self.model, gpus=self.gpu_num)
+        except:
+            pass
+
         self.model.compile(loss=self.loss_function, optimizer=self.optimizer, metrics=['accuracy'])
 
     def save_model(self, json_model_file, h5_model_file):

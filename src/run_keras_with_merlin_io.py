@@ -167,6 +167,9 @@ class KerasClass(object):
         self.json_model_file = cfg.json_model_file
         self.h5_model_file = cfg.h5_model_file
 
+        self.l1 = cfg.l1_reg
+        self.l2 = cfg.l2_reg
+
         # -----------------------------------------------------------
         # ------------------- Generate file lists -------------------
         # -----------------------------------------------------------
@@ -232,7 +235,7 @@ class KerasClass(object):
         self.keras_models = TrainKerasModels(self.inp_dim, self.hidden_layer_size, self.out_dim, self.hidden_layer_type,
                                              output_type=self.output_layer_type, dropout_rate=self.dropout_rate,
                                              loss_function=self.loss_function, optimizer=self.optimizer,
-                                             rnn_params=self.rnn_params)
+                                             l1=self.l1, l2=self.l2, rnn_params=self.rnn_params, gpu_num=cfg.gpu_num)
 
     def make_labels(self):
 

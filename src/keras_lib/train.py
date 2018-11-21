@@ -53,22 +53,20 @@ from keras_lib import data_utils
 
 class TrainKerasModels(kerasModels):
 
-    def __init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type='linear', dropout_rate=0.0, loss_function='mse', optimizer='adam', rnn_params=None):
+    def __init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type='linear',
+                 dropout_rate=0.0, loss_function='mse', optimizer='adam', l1=0.0, l2=0.0, rnn_params=None, gpu_num=1):
 
-        kerasModels.__init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type, dropout_rate, loss_function, optimizer)
+        kerasModels.__init__(self, n_in, hidden_layer_size, n_out, hidden_layer_type, output_type,
+                             dropout_rate, loss_function, optimizer, l1, l2, gpu_num)
 
-        #### TODO: Find a good way to pass below params ####
-        self.merge_size   = rnn_params['merge_size']
-        self.seq_length   = rnn_params['seq_length']
+        # TODO: Find a good way to pass below params
+        self.merge_size = rnn_params['merge_size']
+        self.seq_length = rnn_params['seq_length']
         self.bucket_range = rnn_params['bucket_range']
-
         self.stateful = rnn_params['stateful']
-
-        pass;
 
     def train_feedforward_model(self, train_x, train_y, valid_x, valid_y, batch_size=256, num_of_epochs=10, shuffle_data=True, tensorboard_dir='./'):
 
-        # TODO: tensorboard_dir should drop down a level
         tb_callback = callbacks.TensorBoard(log_dir=tensorboard_dir, histogram_freq=1, write_graph=False,
                                             write_images=False, batch_size=batch_size)
 

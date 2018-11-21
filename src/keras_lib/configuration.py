@@ -276,12 +276,14 @@ class configuration(object):
             ('out_norm', 'MVN', 'Input-Output', 'out_norm'),
 
             # Architecture
-            ('hidden_layer_type', ['TANH', 'TANH', 'TANH', 'TANH', 'TANH', 'TANH'], 'Architecture', 'hidden_layer_type'),
-            ('hidden_layer_size', [ 1024 ,  1024 ,  1024 ,  1024 ,  1024 ,   1024], 'Architecture', 'hidden_layer_size'),
+            ('hidden_layer_type', ['tanh', 'tanh', 'tanh', 'tanh'], 'Architecture', 'hidden_layer_type'),
+            ('hidden_layer_size', [ 1024 ,  1024 ,  1024 ,  1024 ], 'Architecture', 'hidden_layer_size'),
 
             ('batch_size'   , 256, 'Architecture', 'batch_size'),
             ('num_of_epochs',   1, 'Architecture', 'training_epochs'),
             ('dropout_rate' , 0.0, 'Architecture', 'dropout_rate'),
+            ('l1_reg', 0.0, 'Architecture', 'l1_reg'),
+            ('l2_reg', 0.0, 'Architecture', 'l2_reg'),
 
             ('output_layer_type', 'linear', 'Architecture', 'output_layer_type'),
             ('optimizer'        ,   'adam', 'Architecture', 'optimizer'),
@@ -296,6 +298,8 @@ class configuration(object):
             ('merge_size'   ,   1, 'Architecture', 'merge_size'),
             ('seq_length'   , 200, 'Architecture', 'seq_length'),
             ('bucket_range' , 100, 'Architecture', 'bucket_range'),
+
+            ('gpu_num', 1, 'Architecture', 'gpu_num'),
 
             # Data
             ('shuffle_data', True, 'Data', 'shuffle_data'),
