@@ -214,8 +214,8 @@ class KerasClass(object):
                         'dropout_rate': cfg.dropout_rate,
                         'loss_function': cfg.loss_function,
                         'optimizer': cfg.optimizer,
-                        'l1': cfg.l1,
-                        'l2': cfg.l2,
+                        'l1': cfg.l1_reg,
+                        'l2': cfg.l2_reg,
                         'gpu_num': cfg.gpu_num}
 
         rnn_params = {'merge_size': cfg.merge_size,
@@ -227,7 +227,7 @@ class KerasClass(object):
         training_params = {'batch_size': cfg.batch_size,
                            'num_of_epochs': cfg.num_of_epochs,
                            'shuffle_data': cfg.shuffle_data,
-                           'tensorboard_dir': cfg.plot_dir,
+                           'tensorboard_dir': os.path.join(cfg.plot_dir,cfg.nnets_file_name),
                            'stopping_patience': cfg.stopping_patience,
                            'restore_best_weights': cfg.restore_best_weights}
 
