@@ -40,6 +40,7 @@
 from builtins import range
 from builtins import object
 import random
+import os
 import numpy as np
 
 import keras
@@ -214,6 +215,7 @@ class kerasModels(object):
 
         # Parallelize gpus
         if self.gpu_num > 1:
+            os.environ['CUDA_VISIBLE_DEVICES'] = str(self.gpu_num)
             self.model = multi_gpu_model(self.model, gpus=self.gpu_num)
 
         self.model.compile(loss=self.loss_function, optimizer=self.optimizer, metrics=['accuracy'])
