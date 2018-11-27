@@ -298,6 +298,7 @@ class KerasClass(object):
 
         else:  # Create the scaler objects
             print('preparing train_x, train_y from input and output feature files...')
+            # TODO: Problem: we use a lot of memory, can we batch process this step? - can take a random sample...
             train_x, train_y, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list, self.out_train_file_list,
                                                                             self.inp_dim, self.out_dim, sequential_training=self.sequential_training)
 

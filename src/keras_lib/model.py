@@ -96,6 +96,7 @@ class kerasModels(object):
             else:
                 input_size = self.hidden_layer_size[i - 1]
 
+            # TODO: introduce batch normalization
             self.model.add(Dense(
                     units=self.hidden_layer_size[i],
                     activation=self.hidden_layer_type[i],

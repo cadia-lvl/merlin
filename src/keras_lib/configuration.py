@@ -361,7 +361,6 @@ class configuration(object):
 
             logger.info('%20s has %7s value %s' % (section+":"+option,user_or_default,value) )
 
-
     def complete_configuration(self):
         # to be called after reading any user-specific settings
         # because the values set here depend on those user-specific settings

@@ -53,8 +53,7 @@ from io_funcs.binary_io import BinaryIOCollection
 ##### Memory variables #####
 ############################
 
-UTT_BUFFER_SIZE   =   10000
-FRAME_BUFFER_SIZE = 3000000
+FRAME_BUFFER_SIZE = 5000000
 
 
 def read_data_from_file_list(inp_file_list, out_file_list, inp_dim, out_dim, sequential_training=True):
@@ -323,7 +322,7 @@ def compute_norm_stats(data, stats_file, method="MVN", no_scaling_ind=()):
     io_funcs = BinaryIOCollection()
 
     if method=="MVN":
-        scaler = preprocessing.StandardScaler().fit(data)
+        scaler = preprocessing.StandardScaler(copy=False).fit(data)
         if no_scaling_ind:
             scaler.mean_[no_scaling_ind] = 0
             scaler.scale_[no_scaling_ind] = 1
@@ -331,7 +330,7 @@ def compute_norm_stats(data, stats_file, method="MVN", no_scaling_ind=()):
     elif method=="MINMAX":
         # TODO: this seems strange, if this is used, check the documentation:
         # http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html
-        scaler = preprocessing.MinMaxScaler(feature_range=(0.01, 0.99)).fit(data)
+        scaler = preprocessing.MinMaxScaler(copy=False, feature_range=(0.01, 0.99)).fit(data)
         norm_matrix = np.vstack((scaler.min_, scaler.scale_))
 
     print(norm_matrix.shape)
