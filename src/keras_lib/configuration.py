@@ -401,6 +401,8 @@ class configuration(object):
         # model files
         self.json_model_file = os.path.join(self.model_dir, self.nnets_file_name+'.json')
         self.h5_model_file   = os.path.join(self.model_dir, self.nnets_file_name+'.h5')
+        self.model_params_file   = os.path.join(self.model_dir, self.nnets_file_name+'.pickle')
+
 
         # predicted features directory
         self.pred_feat_dir = os.path.join(self.gen_dir, self.nnets_file_name)

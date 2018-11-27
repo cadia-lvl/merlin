@@ -39,7 +39,7 @@
 
 from builtins import range
 from builtins import object
-import random
+import pickle
 import os
 import numpy as np
 
@@ -68,6 +68,7 @@ class kerasModels(object):
         :type n_out: Integrer
         """
 
+        self.model_params = model_params
         self.inp_dim = int(model_params['inp_dim'])
         self.out_dim = int(model_params['out_dim'])
         self.n_layers = len(model_params['hidden_layer_size'])
@@ -218,26 +219,40 @@ class kerasModels(object):
             os.environ['CUDA_VISIBLE_DEVICES'] = str(self.gpu_num)
             self.model = multi_gpu_model(self.model, gpus=self.gpu_num)
 
-        self.model.compile(loss=self.loss_function, optimizer=self.optimizer, metrics=['accuracy'])
+        self.model.compile(loss=self.model_params['loss_function'],
+                           optimizer=self.model_params['optimizer'],
+                           metrics=['accuracy'])
 
-    def save_model(self, json_model_file, h5_model_file):
+    def save_model(self, json_model_file, h5_model_file, model_params_file):
+
+        # Dump the model params into pickle
+        with open(model_params_file, "wb") as f:
+            pickle.dump(self.model_params, f, pickle.DEFAULT_PROTOCOL)
+
         # serialize model to JSON
         model_json = self.model.to_json()
         with open(json_model_file, "w") as json_file:
             json_file.write(model_json)
+
         # serialize weights to HDF5
         self.model.save_weights(h5_model_file)
+
         print("Saved model to disk")
 
-    def load_model(self, json_model_file, h5_model_file):
-        #### load the model ####
-        json_file = open(json_model_file, 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        loaded_model = model_from_json(loaded_model_json)
-        loaded_model.load_weights(h5_model_file)
+    def load_model(self, json_model_file, h5_model_file, model_params_file):
+
+        # Read the model parameters from file
+        with open(model_params_file, 'rb') as f:
+            self.model_params = pickle.load(f)
+
+        # Read the model from file
+        with open(json_model_file, 'r') as f:
+            loaded_model_json = f.read()
+
+        # Load the model and weights
+        self.model = model_from_json(loaded_model_json)
+        self.model.load_weights(h5_model_file)
         print("Loaded model from disk")
 
-        #### compile the model ####
-        self.model = loaded_model
+        # compile the model
         self.compile_model()

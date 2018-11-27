@@ -642,6 +642,8 @@ class configuration(object):
             # model files
             self.json_model_file = os.path.join(self.model_dir, self.model_file_name+'.json')
             self.h5_model_file   = os.path.join(self.model_dir, self.model_file_name+'.h5')
+            self.model_params_file   = os.path.join(self.model_dir, self.model_file_name+'.pickle')
+
 
         if self.switch_to_keras and self.switch_to_tensorflow:
             logger.critical("Please switch to either tensorflow or keras, but not both!!")

@@ -143,6 +143,7 @@ class KerasClass(object):
 
         self.json_model_file = cfg.json_model_file
         self.h5_model_file = cfg.h5_model_file
+        self.model_params_file = cfg.model_params_file
 
         # -----------------------------------------------------------
         # ------------------- Generate file lists -------------------
@@ -367,7 +368,7 @@ class KerasClass(object):
                                                    training_algo=self.training_algo)
 
         #### store the model ####
-        self.keras_models.save_model(self.json_model_file, self.h5_model_file)
+        self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)
 
     def test_keras_model(self):
 
