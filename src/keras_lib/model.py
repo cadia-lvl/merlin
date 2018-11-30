@@ -122,6 +122,8 @@ class kerasModels(object):
         seed = 12345
         np.random.seed(seed)
 
+        # TODO: parameters to add: implementation (1 or 2), unroll
+
         # add hidden layers
         for i in range(self.n_layers):
             if i == 0:
@@ -156,6 +158,8 @@ class kerasModels(object):
                         activation=self.hidden_layer_type[i],
                         kernel_initializer="normal",
                         input_shape=(None, input_size)))
+
+            self.model.add(Dropout(self.dropout_rate))
 
         # add output layer
         self.model.add(Dense(

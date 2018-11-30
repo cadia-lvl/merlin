@@ -139,7 +139,8 @@ class KerasClass(object):
         # ------------------- Model Parameters -------------------
         # --------------------------------------------------------
 
-        self.sequential_training = cfg.sequential_training  # Not used currently
+        self.sequential_training = cfg.sequential_training
+        self.stateful = cfg.stateful
 
         self.json_model_file = cfg.json_model_file
         self.h5_model_file = cfg.h5_model_file
@@ -207,6 +208,7 @@ class KerasClass(object):
         # ------------------- Define Keras Model -------------------
         # ----------------------------------------------------------
 
+        self.batch_size = cfg.batch_size
         model_params = {'inp_dim': self.inp_dim,
                         'hidden_layer_size': cfg.hidden_layer_size,
                         'out_dim': self.out_dim,
@@ -298,10 +300,10 @@ class KerasClass(object):
             self.out_scaler = data_utils.load_norm_stats(self.out_stats_file, self.out_dim, method=self.out_norm)
 
         else:  # Create the scaler objects
+            # Data must be in an a numpy array for normalization, therefore set sequential_training to false
             print('preparing train_x, train_y from input and output feature files...')
-            # TODO: Problem: we use a lot of memory, can we batch process this step? - can take a random sample...
             train_x, train_y, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list, self.out_train_file_list,
-                                                                            self.inp_dim, self.out_dim, sequential_training=self.sequential_training)
+                                                                            self.inp_dim, self.out_dim, sequential_training=False)
 
             print('computing norm stats for train_x...')
             # I have removed scaling from binary variables (discrete_dict columns are all binary)
@@ -357,15 +359,14 @@ class KerasClass(object):
         if not self.sequential_training:
             # Train feedforward model
             self.keras_models.train_feedforward_model(train_x, train_y, valid_x, valid_y)
-        else:
-            # Train recurrent model
-            print(('training algorithm: %d' % (self.training_algo)))
-            self.keras_models.train_sequence_model(train_x, train_y, valid_x,
-                                                   valid_y, train_flen,
-                                                   batch_size=self.batch_size,
-                                                   num_of_epochs=self.num_of_epochs,
-                                                   shuffle_data=self.shuffle_data,
-                                                   training_algo=self.training_algo)
+
+        elif self.sequential_training and  self.batch_size == 1:
+            # Train recurrent model of batch size one
+            self.keras_models.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y)
+
+        elif self.sequential_training and self.stateful:
+            # Train recurrent model of many batches, should it be stateful?
+            self.keras_models.train_recurrent_model(train_x, train_y, valid_x, valid_y, train_flen, training_algo=1)
 
         #### store the model ####
         self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)

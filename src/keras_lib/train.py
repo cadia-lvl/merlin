@@ -87,48 +87,60 @@ class TrainKerasModels(kerasModels):
                        batch_size=self.batch_size, epochs=self.num_of_epochs, shuffle=self.shuffle_data,
                        callbacks=[tb_callback, es_callback])
 
-    def train_sequence_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size=1, num_of_epochs=10, shuffle_data=True, training_algo=1):
-        # TODO: use packaged params
+    # def train_sequence_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size=1, num_of_epochs=10, shuffle_data=True, training_algo=1):
+    #     # TODO: use packaged params
+    #
+    #     if batch_size == 1:
+    #         self.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y)
+    #     else:
+    #         self.train_recurrent_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data, training_algo)
 
-        if batch_size == 1:
-            self.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y, num_of_epochs, shuffle_data)
-        else:
-            self.train_recurrent_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data, training_algo)
+    def train_recurrent_model_batchsize_one(self, train_x, train_y, valid_x, valid_y):
 
-    def train_recurrent_model_batchsize_one(self, train_x, train_y, valid_x, valid_y, num_of_epochs, shuffle_data):
-        # TODO: use packaged params
-
-        ### if batch size is equal to 1 ###
+        # if batch size is equal to 1
         train_idx_list = list(train_x.keys())
-        if shuffle_data:
+        valid_idx_list = list(valid_x.keys())
+        if self.shuffle_data:
             random.seed(271638)
             random.shuffle(train_idx_list)
 
         train_file_number = len(train_idx_list)
-        for epoch_num in range(num_of_epochs):
-            print(('Epoch: %d/%d ' % (epoch_num+1, num_of_epochs)))
+        for epoch_num in range(self.num_of_epochs):
+            print(('Epoch: %d/%d ' % (epoch_num+1, self.num_of_epochs)))
             file_num = 0
+
+            # Train
             for file_name in train_idx_list:
                 temp_train_x = train_x[file_name]
                 temp_train_y = train_y[file_name]
                 temp_train_x = np.reshape(temp_train_x, (1, temp_train_x.shape[0], self.inp_dim))
                 temp_train_y = np.reshape(temp_train_y, (1, temp_train_y.shape[0], self.out_dim))
                 self.model.train_on_batch(temp_train_x, temp_train_y)
-                #self.model.fit(temp_train_x, temp_train_y, epochs=1, shuffle=False, verbose=0)
                 file_num += 1
                 data_utils.drawProgressBar(file_num, train_file_number)
 
+            # Validate
+            error = np.empty(shape=(len(valid_idx_list), 1))
+            accuracy = np.empty(shape=(len(valid_idx_list), 1))
+            for i, file_name in enumerate(valid_idx_list):
+                temp_valid_x = valid_x[file_name]
+                temp_valid_y = valid_y[file_name]
+                temp_valid_x = np.reshape(temp_valid_x, (1, temp_valid_x.shape[0], self.inp_dim))
+                temp_valid_y = np.reshape(temp_valid_y, (1, temp_valid_y.shape[0], self.out_dim))
+                error[i], accuracy[i] = self.model.test_on_batch(temp_valid_x, temp_valid_y)
+
+            print('\nvalidation error: %.3f \nvalidation accuracy: %.3f' % (np.mean(error), np.mean(accuracy)))
             sys.stdout.write("\n")
 
-    def train_recurrent_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data, training_algo):
+    def train_recurrent_model(self, train_x, train_y, valid_x, valid_y, train_flen, training_algo):
         # TODO: use packaged params
         ### if batch size more than 1 ###
         if training_algo == 1:
-            self.train_padding_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data)
+            self.train_padding_model(train_x, train_y, valid_x, valid_y, train_flen)
         elif training_algo == 2:
-            self.train_bucket_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data)
+            self.train_bucket_model(train_x, train_y, valid_x, valid_y, train_flen)
         elif training_algo == 3:
-            self.train_split_model(train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data)
+            self.train_split_model(train_x, train_y, valid_x, valid_y, train_flen)
         else:
             print("Choose training algorithm for batch training with RNNs:")
             print("1. Padding model -- pad utterances with zeros to maximum sequence length")
@@ -136,20 +148,20 @@ class TrainKerasModels(kerasModels):
             print("3. Split model   -- split utterances to a fixed sequence length")
             sys.exit(1)
 
-    def train_padding_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data):
+    def train_padding_model(self, train_x, train_y, valid_x, valid_y, train_flen):
         # TODO: use packaged params
         ### Method 1 ###
         train_id_list = list(train_flen['utt2framenum'].keys())
-        if shuffle_data:
+        if self.shuffle_data:
             random.seed(271638)
             random.shuffle(train_id_list)
 
         train_file_number = len(train_id_list)
-        for epoch_num in range(num_of_epochs):
-            print(('Epoch: %d/%d ' %(epoch_num+1, num_of_epochs)))
+        for epoch_num in range(self.num_of_epochs):
+            print(('Epoch: %d/%d ' %(epoch_num+1, self.num_of_epochs)))
             file_num = 0
             while file_num < train_file_number:
-                train_idx_list = train_id_list[file_num: file_num + batch_size]
+                train_idx_list = train_id_list[file_num: file_num + self.batch_size]
                 seq_len_arr    = [train_flen['utt2framenum'][filename] for filename in train_idx_list]
                 max_seq_length = max(seq_len_arr)
                 sub_train_x    = dict((filename, train_x[filename]) for filename in train_idx_list)
@@ -162,18 +174,18 @@ class TrainKerasModels(kerasModels):
 
             print(" Validation error: %.3f" % (self.get_validation_error(valid_x, valid_y)))
     
-    def train_bucket_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data):
+    def train_bucket_model(self, train_x, train_y, valid_x, valid_y, train_flen):
         # TODO: use packaged params
         ### Method 2 ###
         train_fnum_list  = np.array(list(train_flen['framenum2utt'].keys()))
         train_range_list = list(range(min(train_fnum_list), max(train_fnum_list)+1, self.bucket_range))
-        if shuffle_data:
+        if self.shuffle_data:
             random.seed(271638)
             random.shuffle(train_range_list)
 
         train_file_number = len(train_x)
-        for epoch_num in range(num_of_epochs):
-            print(('Epoch: %d/%d ' %(epoch_num+1, num_of_epochs)))
+        for epoch_num in range(self.num_of_epochs):
+            print(('Epoch: %d/%d ' %(epoch_num+1, self.num_of_epochs)))
             file_num = 0
             for frame_num in train_range_list:
                 min_seq_length = frame_num
@@ -186,27 +198,27 @@ class TrainKerasModels(kerasModels):
                 sub_train_y    = dict((filename, train_y[filename]) for filename in train_idx_list)
                 temp_train_x   = data_utils.transform_data_to_3d_matrix(sub_train_x, max_length=max_seq_length)
                 temp_train_y   = data_utils.transform_data_to_3d_matrix(sub_train_y, max_length=max_seq_length)
-                self.model.fit(temp_train_x, temp_train_y, batch_size=batch_size, shuffle=False, epochs=1, verbose=0)
+                self.model.fit(temp_train_x, temp_train_y, batch_size=self.batch_size, shuffle=False, epochs=1, verbose=0)
 
                 file_num += len(train_idx_list)
                 data_utils.drawProgressBar(file_num, train_file_number)
 
             print(" Validation error: %.3f" % (self.get_validation_error(valid_x, valid_y)))
 
-    def train_split_model(self, train_x, train_y, valid_x, valid_y, train_flen, batch_size, num_of_epochs, shuffle_data):
+    def train_split_model(self, train_x, train_y, valid_x, valid_y, train_flen):
         # TODO: use packaged params
         ### Method 3 ###
         train_id_list = list(train_flen['utt2framenum'].keys())
-        if shuffle_data:
+        if self.shuffle_data:
             random.seed(271638)
             random.shuffle(train_id_list)
 
         train_file_number = len(train_id_list)
-        for epoch_num in range(num_of_epochs):
-            print(('Epoch: %d/%d ' %(epoch_num+1, num_of_epochs)))
+        for epoch_num in range(self.num_of_epochs):
+            print(('Epoch: %d/%d ' %(epoch_num+1, self.num_of_epochs)))
             file_num = 0
             while file_num < train_file_number:
-                train_idx_list = train_id_list[file_num: file_num + batch_size]
+                train_idx_list = train_id_list[file_num: file_num + self.batch_size]
                 sub_train_x    = dict((filename, train_x[filename]) for filename in train_idx_list)
                 sub_train_y    = dict((filename, train_y[filename]) for filename in train_idx_list)
                 temp_train_x   = data_utils.transform_data_to_3d_matrix(sub_train_x, seq_length=self.seq_length, merge_size=self.merge_size)
