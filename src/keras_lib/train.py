@@ -48,6 +48,7 @@ from keras import callbacks
 
 from keras_lib.model import kerasModels
 from keras_lib import data_utils
+from keras_lib.data_sequence import UttBatchSequence
 
 from io_funcs.binary_io import BinaryIOCollection
 
@@ -97,40 +98,53 @@ class TrainKerasModels(kerasModels):
 
     def train_recurrent_model_batchsize_one(self, train_x, train_y, valid_x, valid_y):
 
-        # if batch size is equal to 1
-        train_idx_list = list(train_x.keys())
-        valid_idx_list = list(valid_x.keys())
-        if self.shuffle_data:
-            random.seed(271638)
-            random.shuffle(train_idx_list)
+        # Set up callbacks
+        tb_callback = callbacks.TensorBoard(log_dir=self.tensorboard_dir)
+        es_callback = callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=self.stopping_patience,
+                                              verbose=0, mode='auto', baseline=None,
+                                              restore_best_weights=self.restore_best_weights)
 
-        train_file_number = len(train_idx_list)
-        for epoch_num in range(self.num_of_epochs):
-            print(('Epoch: %d/%d ' % (epoch_num+1, self.num_of_epochs)))
-            file_num = 0
+        train_sequence = UttBatchSequence(list(train_x.values()), list(train_y.values()))
+        valid_sequence = UttBatchSequence(list(valid_x.values()), list(valid_y.values()))
 
-            # Train
-            for file_name in train_idx_list:
-                temp_train_x = train_x[file_name]
-                temp_train_y = train_y[file_name]
-                temp_train_x = np.reshape(temp_train_x, (1, temp_train_x.shape[0], self.inp_dim))
-                temp_train_y = np.reshape(temp_train_y, (1, temp_train_y.shape[0], self.out_dim))
-                self.model.train_on_batch(temp_train_x, temp_train_y)
-                file_num += 1
-                data_utils.drawProgressBar(file_num, train_file_number)
+        self.model.fit_generator(train_sequence, epochs=self.num_of_epochs, verbose=1,
+                                 callbacks=[tb_callback, es_callback], validation_data=valid_sequence,
+                                 workers=1, use_multiprocessing=False, shuffle=self.shuffle_data)
 
-            # Validate
-            error = np.empty(shape=(len(valid_idx_list), 1))
-            accuracy = np.empty(shape=(len(valid_idx_list), 1))
-            for i, file_name in enumerate(valid_idx_list):
-                temp_valid_x = valid_x[file_name]
-                temp_valid_y = valid_y[file_name]
-                temp_valid_x = np.reshape(temp_valid_x, (1, temp_valid_x.shape[0], self.inp_dim))
-                temp_valid_y = np.reshape(temp_valid_y, (1, temp_valid_y.shape[0], self.out_dim))
-                error[i], accuracy[i] = self.model.test_on_batch(temp_valid_x, temp_valid_y)
-
-            print('\nvalidation error: %.3f \nvalidation accuracy: %.3f' % (np.mean(error), np.mean(accuracy)))
-            sys.stdout.write("\n")
+        # # if batch size is equal to 1
+        # train_idx_list = list(train_x.keys())
+        # valid_idx_list = list(valid_x.keys())
+        # if self.shuffle_data:
+        #     random.seed(271638)
+        #     random.shuffle(train_idx_list)
+        #
+        # train_file_number = len(train_idx_list)
+        # for epoch_num in range(self.num_of_epochs):
+        #     print(('Epoch: %d/%d ' % (epoch_num+1, self.num_of_epochs)))
+        #     file_num = 0
+        #
+        #     # Train
+        #     for file_name in train_idx_list:
+        #         temp_train_x = train_x[file_name]
+        #         temp_train_y = train_y[file_name]
+        #         temp_train_x = np.reshape(temp_train_x, (1, temp_train_x.shape[0], self.inp_dim))
+        #         temp_train_y = np.reshape(temp_train_y, (1, temp_train_y.shape[0], self.out_dim))
+        #         self.model.train_on_batch(temp_train_x, temp_train_y)
+        #         file_num += 1
+        #         data_utils.drawProgressBar(file_num, train_file_number)
+        #
+        #     # Validate
+        #     error = np.empty(shape=(len(valid_idx_list), 1))
+        #     accuracy = np.empty(shape=(len(valid_idx_list), 1))
+        #     for i, file_name in enumerate(valid_idx_list):
+        #         temp_valid_x = valid_x[file_name]
+        #         temp_valid_y = valid_y[file_name]
+        #         temp_valid_x = np.reshape(temp_valid_x, (1, temp_valid_x.shape[0], self.inp_dim))
+        #         temp_valid_y = np.reshape(temp_valid_y, (1, temp_valid_y.shape[0], self.out_dim))
+        #         error[i], accuracy[i] = self.model.test_on_batch(temp_valid_x, temp_valid_y)
+        #
+        #     print('validation error: %.3f \nvalidation accuracy: %.3f' % (np.mean(error), np.mean(accuracy)))
+        #     sys.stdout.write("\n")
 
     def train_recurrent_model(self, train_x, train_y, valid_x, valid_y, train_flen, training_algo):
         # TODO: use packaged params

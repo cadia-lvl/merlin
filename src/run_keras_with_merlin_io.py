@@ -360,7 +360,7 @@ class KerasClass(object):
             # Train feedforward model
             self.keras_models.train_feedforward_model(train_x, train_y, valid_x, valid_y)
 
-        elif self.sequential_training and  self.batch_size == 1:
+        elif self.sequential_training and self.batch_size == 1:
             # Train recurrent model of batch size one
             self.keras_models.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y)
 

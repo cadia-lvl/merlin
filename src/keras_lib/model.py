@@ -223,6 +223,7 @@ class kerasModels(object):
             os.environ['CUDA_VISIBLE_DEVICES'] = str(self.gpu_num)
             self.model = multi_gpu_model(self.model, gpus=self.gpu_num)
 
+        # TODO: try something fancy, use different weights for each loss... we can focus the model on f0
         self.model.compile(loss=self.model_params['loss_function'],
                            optimizer=self.model_params['optimizer'],
                            metrics=['accuracy'])

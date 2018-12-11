@@ -53,7 +53,7 @@ from io_funcs.binary_io import BinaryIOCollection
 ##### Memory variables #####
 ############################
 
-FRAME_BUFFER_SIZE = 5000000
+FRAME_BUFFER_SIZE = 50000000
 
 
 def read_data_from_file_list(inp_file_list, out_file_list, inp_dim, out_dim, sequential_training=True):
