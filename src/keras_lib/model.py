@@ -43,13 +43,10 @@ import pickle
 import os
 import numpy as np
 
-import keras
-from keras.models import Sequential
-from keras.models import model_from_json
-from keras.layers import Dense, SimpleRNN, GRU, LSTM
-from keras.layers import Dropout
+from keras.models import Sequential, Model, model_from_json
+from keras.layers import Dense, SimpleRNN, GRU, LSTM, Dropout, Input
 from keras.regularizers import l1_l2
-from keras.utils import multi_gpu_model
+from keras.utils import multi_gpu_model, plot_model
 
 class kerasModels(object):
 
@@ -86,6 +83,82 @@ class kerasModels(object):
 
         # create model
         self.model = Sequential()
+        self.model_shared = Model()
+
+    def define_shared_model(self):
+        seed = 12345
+        np.random.seed(seed)
+
+        # input
+        inp = Input(shape=(None, self.inp_dim))
+        x = inp
+
+        # First n-1 layers are all shared
+        for i in range(self.n_layers-1):
+
+            input_size = self.hidden_layer_size[i - 1]
+            if self.hidden_layer_type[i] == 'rnn':
+                x = SimpleRNN(units=self.hidden_layer_size[i],
+                              input_shape=(None, input_size),
+                              return_sequences=True)(x)
+            elif self.hidden_layer_type[i] == 'gru':
+                x = GRU(units=self.hidden_layer_size[i],
+                        input_shape=(None, input_size),
+                        return_sequences=True)(x)
+            elif self.hidden_layer_type[i] == 'lstm':
+                x = LSTM(units=self.hidden_layer_size[i],
+                         input_shape=(None, input_size),
+                         return_sequences=True)(x)
+            elif self.hidden_layer_type[i] == 'blstm':
+                x = LSTM(units=self.hidden_layer_size[i],
+                         input_shape=(None, input_size),
+                         return_sequences=True,
+                         go_backwards=True)(x)
+            else:
+                x = Dense(units=self.hidden_layer_size[i],
+                          activation=self.hidden_layer_type[i],
+                          kernel_initializer="normal",
+                          input_shape=(None, input_size))(x)
+
+            # Add dropout between every layer
+            x = Dropout(self.dropout_rate)(x)
+
+        # One output layer per speaker
+
+        output_layers = []
+        # Final layer is created for each speaker
+        # for i in range(len())
+
+
+
+        # Shared Feature Extraction Layer
+        # from keras.utils import plot_model
+        # from keras.models import Model
+        # from keras.layers import Input
+        # from keras.layers import Dense
+        # from keras.layers.recurrent import LSTM
+        # from keras.layers.merge import concatenate
+        # # define input
+        # visible = Input(shape=(100, 1))
+        # # feature extraction
+        # extract1 = LSTM(10)(visible)
+        # # first interpretation model
+        # interp1 = Dense(10, activation='relu')(extract1)
+        # # second interpretation model
+        # interp11 = Dense(10, activation='relu')(extract1)
+        # interp12 = Dense(20, activation='relu')(interp11)
+        # interp13 = Dense(10, activation='relu')(interp12)
+        # # merge interpretation
+        # merge = concatenate([interp1, interp13])
+        # # output
+        # output = Dense(1, activation='sigmoid')(merge)
+        # model = Model(inputs=visible, outputs=output)
+        # # summarize layers
+        # print(model.summary())
+        # # plot graph
+        # plot_model(model, to_file='shared_feature_extractor.png')
+
+
 
     def define_feedforward_model(self):
         seed = 12345

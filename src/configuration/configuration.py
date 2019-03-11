@@ -349,6 +349,7 @@ class configuration(object):
             ('hidden_activation'    , 'tanh'                        , 'Architecture', 'hidden_activation'),
             ('output_activation'    , 'linear'                      , 'Architecture', 'output_activation'),
             ('hidden_layer_size'  , [1024, 1024, 1024, 1024, 1024, 1024], 'Architecture', 'hidden_layer_size'),
+            ('shared_layer_flag', [0, 0, 0, 0, 0, 0], 'Architecture', 'shared_layer_flag'),
             ('private_hidden_sizes' , [1024]                         , 'Architecture', 'private_hidden_sizes'),
             ('stream_weights'       , [1.0]                         , 'Architecture', 'stream_weights'),
             ('private_l2_reg'       , 0.00001                       , 'Architecture', 'private_l2_reg'),

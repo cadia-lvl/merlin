@@ -96,7 +96,8 @@ class KerasClass(object):
 
         # Norm stats files
         self.inp_stats_file = cfg.inp_stats_file
-        self.out_stats_file = cfg.out_stats_file
+        self.out_stats_file_list = cfg.out_stats_file_list
+        self.speaker_id = cfg.speaker_id
 
         self.inp_scaler = None
         self.out_scaler = None
@@ -211,6 +212,7 @@ class KerasClass(object):
         self.batch_size = cfg.batch_size
         model_params = {'inp_dim': self.inp_dim,
                         'hidden_layer_size': cfg.hidden_layer_size,
+                        'shared_layer_flag': cfg.shared_layer_flag,
                         'out_dim': self.out_dim,
                         'hidden_layer_type': cfg.hidden_layer_type,
                         'output_layer_type': cfg.output_layer_type,
@@ -273,8 +275,8 @@ class KerasClass(object):
 
         # File lists for the final cmp files (these are re-generated below to fit a precise numpy data array)
         self.nn_cmp_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.out_feat_dir, self.cmp_ext)
-        self.nn_cmp_norm_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.out_feat_dir_norm,
-                                                                       self.cmp_ext)
+        # self.nn_cmp_norm_file_list = data_utils.prepare_file_path_list(self.file_id_list, self.out_feat_dir_norm,
+        #                                                                self.cmp_ext)
         # TODO: Get the delta and acceleration windows from the recipe file.
         acoustic_worker = AcousticComposition(delta_win=[-0.5, 0.0, 0.5], acc_win=[1.0, -2.0, 1.0])
 
@@ -295,15 +297,20 @@ class KerasClass(object):
         # What type of normalization? -- its given as "method" in compute_norm_stats
 
         # Check if normalization stat files already exist
-        if os.path.isfile(self.inp_stats_file) and os.path.isfile(self.out_stats_file):
+        if os.path.isfile(self.inp_stats_file) and os.path.isfile(self.out_stats_file_list[0]):
             self.inp_scaler = data_utils.load_norm_stats(self.inp_stats_file, self.inp_dim, method=self.inp_norm)
-            self.out_scaler = data_utils.load_norm_stats(self.out_stats_file, self.out_dim, method=self.out_norm)
+            self.out_scaler_list = []
+            for speaker_norm_file in self.out_stats_file_list:
+                self.out_scaler_list.append(data_utils.load_norm_stats(self.out_stats_file_list, self.out_dim, method=self.out_norm))
 
         else:  # Create the scaler objects
             # Data must be in an a numpy array for normalization, therefore set sequential_training to false
             print('preparing train_x, train_y from input and output feature files...')
-            train_x, train_y, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list, self.out_train_file_list,
-                                                                            self.inp_dim, self.out_dim, sequential_training=False)
+            train_x, train_y_dict, train_flen = data_utils.read_data_from_file_list_shared(self.speaker_id,
+                                                                                           self.inp_train_file_list,
+                                                                                           self.out_train_file_list,
+                                                                                           self.inp_dim,
+                                                                                           self.out_dim)
 
             print('computing norm stats for train_x...')
             # I have removed scaling from binary variables (discrete_dict columns are all binary)
@@ -320,20 +327,16 @@ class KerasClass(object):
                 index = [sum([int(num) for num in self.outdims[0:vuv_index]])]
             else:
                 index = []
-            self.out_scaler = data_utils.compute_norm_stats(train_y,
-                                                            self.out_stats_file,
-                                                            method=self.out_norm,
-                                                            no_scaling_ind=index)  # For vuv (the first column)
+
+            for speaker in self.speaker_id:
+                train_y = train_y_dict[speaker]
+                ind = np.where([speaker in file_name for file_name in self.out_stats_file_list])
+                self.out_scaler = data_utils.compute_norm_stats(train_y,
+                                                                self.out_stats_file_list[ind],
+                                                                method=self.out_norm,
+                                                                no_scaling_ind=index)  # For vuv (the first column)
 
     def train_keras_model(self):
-
-        #### define the model ####
-        if not self.sequential_training:
-            self.keras_models.define_feedforward_model()
-        elif self.stateful:
-            self.keras_models.define_stateful_model(batch_size=self.batch_size, seq_length=self.seq_length)
-        else:
-            self.keras_models.define_sequence_model()
 
         # TODO: for large datasets, I might have to batch load the data to memory... I will cross that bridge when it comes
         #### load the data ####
@@ -353,6 +356,14 @@ class KerasClass(object):
         train_y = data_utils.norm_data(train_y, self.out_scaler, sequential_training=self.sequential_training)
         valid_x = data_utils.norm_data(valid_x, self.inp_scaler, sequential_training=self.sequential_training)
         valid_y = data_utils.norm_data(valid_y, self.out_scaler, sequential_training=self.sequential_training)
+
+        #### define the model ####
+        if not self.sequential_training:
+            self.keras_models.define_feedforward_model()
+        elif self.stateful:
+            self.keras_models.define_stateful_model(batch_size=self.batch_size, seq_length=self.seq_length)
+        else:
+            self.keras_models.define_sequence_model()
 
         #### train the model ####
         print('training...')

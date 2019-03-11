@@ -56,6 +56,58 @@ from io_funcs.binary_io import BinaryIOCollection
 FRAME_BUFFER_SIZE = 50000000
 
 
+def read_data_from_file_list_shared(speaker_id_list, inp_file_list, out_file_list, inp_dim, out_dim):
+
+    io_funcs = BinaryIOCollection()
+
+    num_of_utt = len(inp_file_list)
+    num_of_spk = len(speaker_id_list)
+
+    file_length_dict = {'framenum2utt':{}, 'utt2framenum':{}}
+
+    temp_set_x = {}
+    temp_set_y = {}
+
+    ### read file by file ###
+    for i in range(num_of_utt):
+        inp_file_name = inp_file_list[i]
+        out_file_name = out_file_list[i]
+        inp_features, inp_frame_number = io_funcs.load_binary_file_frame(inp_file_name, inp_dim)
+        out_features, out_frame_number = io_funcs.load_binary_file_frame(out_file_name, out_dim)
+
+        base_file_name = os.path.basename(inp_file_name).split(".")[0]
+
+        if abs(inp_frame_number-out_frame_number)>5:
+            print('the number of frames in input and output features are different: %d vs %d (%s)' %(inp_frame_number, out_frame_number, base_file_name))
+            sys.exit(0)
+        else:
+            frame_number = min(inp_frame_number, out_frame_number)
+
+        # Write to dictionaries
+        temp_set_x[base_file_name] = inp_features[0:frame_number]
+        temp_set_y[base_file_name] = out_features[0:frame_number]
+
+        if frame_number not in file_length_dict['framenum2utt']:
+            file_length_dict['framenum2utt'][frame_number] = [base_file_name]
+        else:
+            file_length_dict['framenum2utt'][frame_number].append(base_file_name)
+
+        file_length_dict['utt2framenum'][base_file_name] = frame_number
+
+        drawProgressBar(i+1, num_of_utt)
+
+    sys.stdout.write("\n")
+
+    set_x = temp_set_x
+    set_y = {speaker: {} for speaker in speaker_id_list}
+    for base_file_name in temp_set_y.keys():
+        speaker_ind = np.where([speaker_id in base_file_name for speaker_id in speaker_id_list])
+        speaker = speaker_id_list[speaker_ind]
+        set_y[speaker][base_file_name] = temp_set_y[base_file_name]
+
+    return set_x, set_y, file_length_dict
+
+
 def read_data_from_file_list(inp_file_list, out_file_list, inp_dim, out_dim, sequential_training=True):
     io_funcs = BinaryIOCollection()
 

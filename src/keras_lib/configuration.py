@@ -278,6 +278,8 @@ class configuration(object):
             # Architecture
             ('hidden_layer_type', ['tanh', 'tanh', 'tanh', 'tanh'], 'Architecture', 'hidden_layer_type'),
             ('hidden_layer_size', [ 1024 ,  1024 ,  1024 ,  1024 ], 'Architecture', 'hidden_layer_size'),
+            ('shared_layer_flag', [0, 0, 0, 0], 'Architecture', 'shared_layer_flag'),
+            ('speaker_id', ['placeholder'], 'Architecture', 'speaker_id'),
 
             ('batch_size'   , 256, 'Architecture', 'batch_size'),
             ('num_of_epochs',   1, 'Architecture', 'training_epochs'),
@@ -380,7 +382,12 @@ class configuration(object):
 
         # input-output normalization stat files
         self.inp_stats_file = os.path.join(self.model_dir, "input_%d_%s.norm" %(int(self.train_file_number), self.inp_norm))
-        self.out_stats_file = os.path.join(self.model_dir, "output_%d_%s.norm" %(int(self.train_file_number), self.out_norm))
+
+        # Create output file for each speaker in dataset (only separate speakers if shared layers exist)
+        self.out_stats_file_list = []
+        for speaker in self.speaker_id:
+            filename = os.path.join(self.model_dir, "output_%d_%s_%s.norm" %(int(self.train_file_number), self.out_norm, speaker))
+            self.out_stats_file_list.append(filename)
 
         # define model file name
         if self.sequential_training:
