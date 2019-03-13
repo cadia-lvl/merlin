@@ -74,7 +74,7 @@ class TrainKerasModels(kerasModels):
         self.stopping_patience = training_params['stopping_patience']
         self.restore_best_weights = training_params['restore_best_weights']
 
-    def train_shared_layer_model(self, train_x_list, train_y_list, valid_x_list, valid_y_list):
+    def train_shared_model(self, train_x_list, train_y_list, valid_x_list, valid_y_list):
         pass
 
     def train_feedforward_model(self, train_x, train_y, valid_x, valid_y):

@@ -71,6 +71,8 @@ class kerasModels(object):
         self.n_layers = len(model_params['hidden_layer_size'])
         self.hidden_layer_size = model_params['hidden_layer_size']
         self.hidden_layer_type = model_params['hidden_layer_type']
+        self.shared_layer_flag = model_params['shared_layer_flag']
+        self.speaker_id = model_params['speaker_id']
         self.output_type = model_params['output_layer_type']
         self.dropout_rate = model_params['dropout_rate']
         self.loss_function = model_params['loss_function']
@@ -123,11 +125,22 @@ class kerasModels(object):
             # Add dropout between every layer
             x = Dropout(self.dropout_rate)(x)
 
-        # One output layer per speaker
-
-        output_layers = []
         # Final layer is created for each speaker
-        # for i in range(len())
+        last_hidden_list = []
+        output_list = []
+        for i in range(len(self.speaker_id)):
+            last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
+                                    input_shape=(None, self.hidden_layer_size[-2]),
+                                    return_sequences=True,
+                                    go_backwards=False)(x))
+            output_list.append(Dense(units=self.out_dim,
+                                     input_dim=self.hidden_layer_size[-1],
+                                     kernel_initializer='normal',
+                                     activation=self.output_type.lower())(last_hidden_list[i]))
+
+        # Model is instantiated
+        model = Model(inputs=inp, outputs=output_list)
+
 
 
 
@@ -157,7 +170,6 @@ class kerasModels(object):
         # print(model.summary())
         # # plot graph
         # plot_model(model, to_file='shared_feature_extractor.png')
-
 
 
     def define_feedforward_model(self):

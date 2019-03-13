@@ -53,7 +53,80 @@ from io_funcs.binary_io import BinaryIOCollection
 ##### Memory variables #####
 ############################
 
-FRAME_BUFFER_SIZE = 50000000
+FRAME_BUFFER_SIZE = 5000000
+
+
+def read_data_from_file_list_shared_2(speaker_id_list, inp_file_list, out_file_list, inp_dim, out_dim, sequential_training=False):
+    io_funcs = BinaryIOCollection()
+
+    num_of_utt = len(inp_file_list)
+    num_of_spk = len(speaker_id_list)
+
+    file_length_dict = {'framenum2utt':{}, 'utt2framenum':{}}
+
+    if sequential_training:
+        temp_set_x = {}
+        temp_set_y = {}
+    else:
+        temp_set_x = np.empty((FRAME_BUFFER_SIZE, inp_dim))
+        temp_set_y = []
+        for i in range(num_of_spk):
+            temp_set_y.append(np.empty((FRAME_BUFFER_SIZE, out_dim)))
+
+    ### read file by file ###
+    current_index = [0]*num_of_spk  # Keep index for each speaker
+    for spk_i, speaker in enumerate(speaker_id_list):
+
+        # Pull sublist of files matching current speaker
+        logical_index = [speaker in name for name in inp_file_list]
+        inp_file_sublist = np.array(inp_file_list)[logical_index]
+        out_file_sublist = np.array(out_file_list)[logical_index]
+        num_sub_utt = len(out_file_sublist)
+
+        # Remember to index the speaker as well
+        for i in range(num_sub_utt):
+            inp_file_name = inp_file_sublist[i]
+            out_file_name = out_file_sublist[i]
+            inp_features, inp_frame_number = io_funcs.load_binary_file_frame(inp_file_name, inp_dim)
+            out_features, out_frame_number = io_funcs.load_binary_file_frame(out_file_name, out_dim)
+
+            base_file_name = os.path.basename(inp_file_name).split(".")[0]
+
+            if abs(inp_frame_number-out_frame_number)>5:
+                print('the number of frames in input and output features are different: %d vs %d (%s)' %(inp_frame_number, out_frame_number, base_file_name))
+                sys.exit(0)
+            else:
+                frame_number = min(inp_frame_number, out_frame_number)
+
+            if sequential_training:
+                temp_set_x[base_file_name] = inp_features[0:frame_number]
+                temp_set_y[speaker][base_file_name] = out_features[0:frame_number]
+            else:
+                temp_set_x[sum(current_index):sum(current_index)+frame_number, ] = inp_features[0:frame_number]
+                temp_set_y[spk_i][current_index[spk_i]:current_index[spk_i]+frame_number, ] = out_features[0:frame_number]
+                current_index[spk_i] += frame_number
+
+            if frame_number not in file_length_dict['framenum2utt']:
+                file_length_dict['framenum2utt'][frame_number] = [base_file_name]
+            else:
+                file_length_dict['framenum2utt'][frame_number].append(base_file_name)
+
+            file_length_dict['utt2framenum'][base_file_name] = frame_number
+
+            drawProgressBar(i+1, num_of_utt)
+
+    sys.stdout.write("\n")
+
+    if not sequential_training:
+        set_x = temp_set_x[0:sum(current_index), ]
+        set_y =[]
+        for i in range(num_of_spk):
+            set_y.append(temp_set_y[i][0:current_index[i], ])
+    else:
+        set_x = temp_set_x
+        set_y = temp_set_y
+
+    return set_x, set_y, file_length_dict
 
 
 def read_data_from_file_list_shared(speaker_id_list, inp_file_list, out_file_list, inp_dim, out_dim):
@@ -102,7 +175,7 @@ def read_data_from_file_list_shared(speaker_id_list, inp_file_list, out_file_lis
     set_y = {speaker: {} for speaker in speaker_id_list}
     for base_file_name in temp_set_y.keys():
         speaker_ind = np.where([speaker_id in base_file_name for speaker_id in speaker_id_list])
-        speaker = speaker_id_list[speaker_ind]
+        speaker = speaker_id_list[int(speaker_ind[0])]
         set_y[speaker][base_file_name] = temp_set_y[base_file_name]
 
     return set_x, set_y, file_length_dict

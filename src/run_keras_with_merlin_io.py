@@ -98,6 +98,7 @@ class KerasClass(object):
         self.inp_stats_file = cfg.inp_stats_file
         self.out_stats_file_list = cfg.out_stats_file_list
         self.speaker_id = cfg.speaker_id
+        self.shared_layer_flag = cfg.shared_layer_flag
 
         self.inp_scaler = None
         self.out_scaler = None
@@ -213,6 +214,7 @@ class KerasClass(object):
         model_params = {'inp_dim': self.inp_dim,
                         'hidden_layer_size': cfg.hidden_layer_size,
                         'shared_layer_flag': cfg.shared_layer_flag,
+                        'speaker_id': cfg.speaker_id,
                         'out_dim': self.out_dim,
                         'hidden_layer_type': cfg.hidden_layer_type,
                         'output_layer_type': cfg.output_layer_type,
@@ -301,16 +303,17 @@ class KerasClass(object):
             self.inp_scaler = data_utils.load_norm_stats(self.inp_stats_file, self.inp_dim, method=self.inp_norm)
             self.out_scaler_list = []
             for speaker_norm_file in self.out_stats_file_list:
-                self.out_scaler_list.append(data_utils.load_norm_stats(self.out_stats_file_list, self.out_dim, method=self.out_norm))
+                self.out_scaler_list.append(data_utils.load_norm_stats(speaker_norm_file, self.out_dim, method=self.out_norm))
 
         else:  # Create the scaler objects
             # Data must be in an a numpy array for normalization, therefore set sequential_training to false
             print('preparing train_x, train_y from input and output feature files...')
-            train_x, train_y_dict, train_flen = data_utils.read_data_from_file_list_shared(self.speaker_id,
+            train_x, train_y_list, train_flen = data_utils.read_data_from_file_list_shared_2(self.speaker_id,
                                                                                            self.inp_train_file_list,
                                                                                            self.out_train_file_list,
                                                                                            self.inp_dim,
-                                                                                           self.out_dim)
+                                                                                           self.out_dim,
+                                                                                           sequential_training=False)
 
             print('computing norm stats for train_x...')
             # I have removed scaling from binary variables (discrete_dict columns are all binary)
@@ -328,13 +331,14 @@ class KerasClass(object):
             else:
                 index = []
 
-            for speaker in self.speaker_id:
-                train_y = train_y_dict[speaker]
-                ind = np.where([speaker in file_name for file_name in self.out_stats_file_list])
-                self.out_scaler = data_utils.compute_norm_stats(train_y,
-                                                                self.out_stats_file_list[ind],
-                                                                method=self.out_norm,
-                                                                no_scaling_ind=index)  # For vuv (the first column)
+            self.out_scaler_list = []
+            for train_y, speaker in zip(train_y_list, self.speaker_id):
+                ind = np.where([speaker in file_name for file_name in self.out_stats_file_list])[0][0]
+                out_scaler = data_utils.compute_norm_stats(train_y,
+                                                           self.out_stats_file_list[ind],
+                                                           method=self.out_norm,
+                                                           no_scaling_ind=index)  # For vuv (the first column)
+                self.out_scaler_list.append(out_scaler)
 
     def train_keras_model(self):
 
@@ -353,31 +357,57 @@ class KerasClass(object):
 
         #### normalize the data (the input and output scalers need to be already created) ####
         train_x = data_utils.norm_data(train_x, self.inp_scaler, sequential_training=self.sequential_training)
-        train_y = data_utils.norm_data(train_y, self.out_scaler, sequential_training=self.sequential_training)
         valid_x = data_utils.norm_data(valid_x, self.inp_scaler, sequential_training=self.sequential_training)
-        valid_y = data_utils.norm_data(valid_y, self.out_scaler, sequential_training=self.sequential_training)
+        # For each speaker:
+        if self.sequential_training:
+            # Cycle through all utterances once
+            for utt_key in train_y.keys():
+                i = np.where([speaker in utt_key for speaker in self.speaker_id])[0][0]
+                # Sequential training false because we are normalizing one utterance at at a time
+                train_y[utt_key] = data_utils.norm_data(train_y[utt_key],
+                                                        self.out_scaler_list[i],
+                                                        sequential_training=False)
+            for utt_key in valid_y.keys():
+                i = np.where([speaker in utt_key for speaker in self.speaker_id])[0][0]
+                valid_y[utt_key] = data_utils.norm_data(valid_y[utt_key],
+                                                        self.out_scaler_list[i],
+                                                        sequential_training=False)
+        else:
+            for i, scaler in enumerate(self.out_scaler_list):
+                train_y[i] = data_utils.norm_data(train_y, scaler, sequential_training=False)
+                valid_y[i] = data_utils.norm_data(valid_y, scaler, sequential_training=False)
+
 
         #### define the model ####
         if not self.sequential_training:
             self.keras_models.define_feedforward_model()
-        elif self.stateful:
-            self.keras_models.define_stateful_model(batch_size=self.batch_size, seq_length=self.seq_length)
-        else:
+        elif self.sequential_training and not self.stateful and sum(self.shared_layer_flag) == 0:
             self.keras_models.define_sequence_model()
+        elif self.sequential_training and not self.stateful and sum(self.shared_layer_flag) > 0:
+            self.keras_models.define_shared_model()
+        elif self.sequential_training and self.stateful and sum(self.shared_layer_flag) == 0:
+            self.keras_models.define_stateful_model(batch_size=self.batch_size, seq_length=self.seq_length)
+
+        else:
+            raise Exception('Model can not be defined with given settings.')
 
         #### train the model ####
         print('training...')
+        shared = sum(self.shared_layer_flag)
         if not self.sequential_training:
             # Train feedforward model
-            self.keras_models.train_feedforward_model(train_x, train_y, valid_x, valid_y)
+            self.keras_models.train_feedforward_model(train_x, train_y_list, valid_x, valid_y_list)
 
-        elif self.sequential_training and self.batch_size == 1:
+        elif self.sequential_training and self.batch_size == 1 and sum(self.shared_layer_flag) == 0:
             # Train recurrent model of batch size one
-            self.keras_models.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y)
+            self.keras_models.train_recurrent_model_batchsize_one(train_x, train_y_list, valid_x, valid_y_list)
+
+        elif self.sequential_training and self.batch_size == 1 and sum(self.shared_layer_flag) > 0:
+            self.keras_models.train_shared_model(train_x, train_y_list, valid_x, valid_y_list)
 
         elif self.sequential_training and self.stateful:
             # Train recurrent model of many batches, should it be stateful?
-            self.keras_models.train_recurrent_model(train_x, train_y, valid_x, valid_y, train_flen, training_algo=1)
+            self.keras_models.train_recurrent_model(train_x, train_y_list, valid_x, valid_y_list, train_flen, training_algo=1)
 
         #### store the model ####
         self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)
