@@ -84,8 +84,8 @@ class kerasModels(object):
         assert len(self.hidden_layer_size) == len(self.hidden_layer_type)
 
         # create model
-        self.model = Sequential()
-        self.model_shared = Model()
+        self.model = None
+        self.models = []
 
     def define_shared_model(self):
         seed = 12345
@@ -98,7 +98,11 @@ class kerasModels(object):
         # First n-1 layers are all shared
         for i in range(self.n_layers-1):
 
-            input_size = self.hidden_layer_size[i - 1]
+            if i == 0:
+                input_size = self.inp_dim
+            else:
+                input_size = self.hidden_layer_size[i - 1]
+
             if self.hidden_layer_type[i] == 'rnn':
                 x = SimpleRNN(units=self.hidden_layer_size[i],
                               input_shape=(None, input_size),
@@ -122,59 +126,56 @@ class kerasModels(object):
                           kernel_initializer="normal",
                           input_shape=(None, input_size))(x)
 
-            # Add dropout between every layer
-            x = Dropout(self.dropout_rate)(x)
+            # Add dropout between every layer except after last
+            if i < self.n_layers-2:
+                x = Dropout(self.dropout_rate)(x)
 
-        # Final layer is created for each speaker
+        # Final layer is created for each speaker and models instantiated individually
         last_hidden_list = []
         output_list = []
         for i in range(len(self.speaker_id)):
-            last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
-                                    input_shape=(None, self.hidden_layer_size[-2]),
-                                    return_sequences=True,
-                                    go_backwards=False)(x))
+
+            if self.hidden_layer_type[-1] == 'rnn':
+                last_hidden_list.append(SimpleRNN(units=self.hidden_layer_size[-1],
+                                                  input_shape=(None, self.hidden_layer_size[-2]),
+                                                  return_sequences=True)(x))
+            elif self.hidden_layer_type[-1] == 'gru':
+                last_hidden_list.append(GRU(units=self.hidden_layer_size[-1],
+                                            input_shape=(None, self.hidden_layer_size[-2]),
+                                            return_sequences=True)(x))
+            elif self.hidden_layer_type[-1] == 'lstm':
+                last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
+                                             input_shape=(None, self.hidden_layer_size[-2]),
+                                             return_sequences=True)(x))
+            elif self.hidden_layer_type[-1] == 'blstm':
+                last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
+                                             input_shape=(None, self.hidden_layer_size[-2]),
+                                             return_sequences=True,
+                                             go_backwards=True)(x))
+            else:
+                last_hidden_list.append(Dense(units=self.hidden_layer_size[-1],
+                                              activation=self.hidden_layer_type[i],
+                                              kernel_initializer="normal",
+                                              input_shape=(None, self.hidden_layer_size[-2]))(x))
+
             output_list.append(Dense(units=self.out_dim,
                                      input_dim=self.hidden_layer_size[-1],
                                      kernel_initializer='normal',
-                                     activation=self.output_type.lower())(last_hidden_list[i]))
+                                     activation=self.output_type.lower(),
+                                     name=self.speaker_id[i])(last_hidden_list[i]))
 
-        # Model is instantiated
-        model = Model(inputs=inp, outputs=output_list)
+            # instantiate model
+            self.models.append(Model(input=inp, output=output_list[i], name=self.speaker_id[i]))
 
-
-
-
-        # Shared Feature Extraction Layer
-        # from keras.utils import plot_model
-        # from keras.models import Model
-        # from keras.layers import Input
-        # from keras.layers import Dense
-        # from keras.layers.recurrent import LSTM
-        # from keras.layers.merge import concatenate
-        # # define input
-        # visible = Input(shape=(100, 1))
-        # # feature extraction
-        # extract1 = LSTM(10)(visible)
-        # # first interpretation model
-        # interp1 = Dense(10, activation='relu')(extract1)
-        # # second interpretation model
-        # interp11 = Dense(10, activation='relu')(extract1)
-        # interp12 = Dense(20, activation='relu')(interp11)
-        # interp13 = Dense(10, activation='relu')(interp12)
-        # # merge interpretation
-        # merge = concatenate([interp1, interp13])
-        # # output
-        # output = Dense(1, activation='sigmoid')(merge)
-        # model = Model(inputs=visible, outputs=output)
-        # # summarize layers
-        # print(model.summary())
-        # # plot graph
-        # plot_model(model, to_file='shared_feature_extractor.png')
-
+            # Compile the model
+            self.models[i].compile(loss=self.model_params['loss_function'],
+                                   optimizer=self.model_params['optimizer'])
 
     def define_feedforward_model(self):
         seed = 12345
         np.random.seed(seed)
+
+        self.model = Sequential()
 
         # add hidden layers
         for i in range(self.n_layers):
@@ -206,6 +207,8 @@ class kerasModels(object):
     def define_sequence_model(self):
         seed = 12345
         np.random.seed(seed)
+
+        self.model = Sequential()
 
         # TODO: parameters to add: implementation (1 or 2), unroll
 
@@ -260,6 +263,8 @@ class kerasModels(object):
         seed = 12345
         np.random.seed(seed)
 
+        self.model = Sequential()
+
         # params
         batch_size = batch_size
         timesteps  = seq_length
@@ -310,8 +315,7 @@ class kerasModels(object):
 
         # TODO: try something fancy, use different weights for each loss... we can focus the model on f0
         self.model.compile(loss=self.model_params['loss_function'],
-                           optimizer=self.model_params['optimizer'],
-                           metrics=['accuracy'])
+                           optimizer=self.model_params['optimizer'])
 
     def save_model(self, json_model_file, h5_model_file, model_params_file):
 
@@ -328,6 +332,27 @@ class kerasModels(object):
         self.model.save_weights(h5_model_file)
 
         print("Saved model to disk")
+
+    def save_models(self, json_model_file, h5_model_file, model_params_file):
+
+        # Dump the model params into pickle
+        with open(model_params_file, "wb") as f:
+            pickle.dump(self.model_params, f, pickle.DEFAULT_PROTOCOL)
+
+        for model in self.models:
+
+            json_model_file_spec = '/'.join(json_model_file.split('/')[:-1]) + '/' + model.name + '_' + json_model_file.split('/')[-1]
+            h5_model_file_spec = '/'.join(h5_model_file.split('/')[:-1]) + '/' + model.name + '_' + h5_model_file.split('/')[-1]
+
+            # serialize model to JSON
+            model_json = model.to_json()
+            with open(json_model_file_spec, "w") as json_file:
+                json_file.write(model_json)
+
+            # serialize weights to HDF5
+            model.save_weights(h5_model_file_spec)
+
+            print("Saved model %s to disk" % model.name)
 
     def load_model(self, json_model_file, h5_model_file, model_params_file):
 

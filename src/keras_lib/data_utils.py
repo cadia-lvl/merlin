@@ -113,7 +113,7 @@ def read_data_from_file_list_shared_2(speaker_id_list, inp_file_list, out_file_l
 
             file_length_dict['utt2framenum'][base_file_name] = frame_number
 
-            drawProgressBar(i+1, num_of_utt)
+            drawProgressBar(i+1, num_sub_utt)
 
     sys.stdout.write("\n")
 

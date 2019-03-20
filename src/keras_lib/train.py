@@ -53,6 +53,13 @@ from keras_lib.data_sequence import UttBatchSequence
 from io_funcs.binary_io import BinaryIOCollection
 
 
+def named_logs(logs):
+  result = {}
+  for l in logs:
+    result['loss'] = l
+  return result
+
+
 class TrainKerasModels(kerasModels):
 
     def __init__(self, model_params, rnn_params, training_params):
@@ -74,13 +81,92 @@ class TrainKerasModels(kerasModels):
         self.stopping_patience = training_params['stopping_patience']
         self.restore_best_weights = training_params['restore_best_weights']
 
-    def train_shared_model(self, train_x_list, train_y_list, valid_x_list, valid_y_list):
-        pass
+    def train_shared_model(self, train_x, train_y, valid_x, valid_y):
+
+        tb_callback_dict = {speaker: None for speaker in self.speaker_id}
+        for model in self.models:
+            # Set up tensorboard
+            tb_callback_dict[model.name] = callbacks.TensorBoard(log_dir=self.tensorboard_dir,
+                                                                 histogram_freq=0,
+                                                                 write_graph=True,
+                                                                 write_grads=True,
+                                                                 write_images=False,
+                                                                 batch_size=self.batch_size)
+            tb_callback_dict[model.name].set_model(model)
+
+        # Need to randomize batches
+        train_id_list = list(train_x.keys())
+        valid_id_list = list(valid_x.keys())
+        if self.shuffle_data:
+            random.seed(271638)
+            random.shuffle(train_id_list)
+
+        train_file_number = len(train_x)
+        valid_file_number = len(valid_x)
+        training_loss = {speaker: [] for speaker in self.speaker_id}
+        validation_loss = {speaker: [] for speaker in self.speaker_id}
+        for epoch_num in range(self.num_of_epochs):
+
+            print(('\nEpoch: %d/%d ' %(epoch_num+1, self.num_of_epochs)))
+            batch_training_loss = {speaker: [] for speaker in self.speaker_id}
+            batch_validation_loss = {speaker: [] for speaker in self.speaker_id}
+            batch_count = {speaker: 0 for speaker in self.speaker_id}
+            for i in range(train_file_number):
+
+                key = train_id_list[i]
+                x = train_x[key].reshape(1, train_x[key].shape[0], self.inp_dim)
+                y = train_y[key].reshape(1, train_y[key].shape[0], self.out_dim)
+
+                # Identify which output to use
+                ind = np.where([spk in key for spk in self.speaker_id])[0][0]
+                batch_speaker = self.speaker_id[ind]
+
+                # Run train on batch
+                for model in self.models:
+                    if model.name == batch_speaker:
+                        batch_training_loss[batch_speaker].append(model.train_on_batch(x, y))
+                        tb_callback_dict[batch_speaker].on_batch_end(batch_count[batch_speaker],
+                                                                     {'loss': batch_training_loss[batch_speaker][-1]})
+                        batch_count[batch_speaker] += 1
+
+                data_utils.drawProgressBar(i, train_file_number-1)
+
+            # Average training loss per epoch
+            for speaker in batch_training_loss.keys():
+                training_loss[speaker].append(np.mean(batch_training_loss[speaker]))
+                print('\nTraining loss %s: %.3f' % (speaker, training_loss[speaker][-1]))
+                tb_callback_dict[speaker].on_epoch_end(epoch_num, {'loss': training_loss[speaker][-1]})
+
+            # for each epoch, run validation set
+            for i in range(valid_file_number):
+                key = valid_id_list[i]
+                x = valid_x[key].reshape(1, valid_x[key].shape[0], self.inp_dim)
+                y = valid_y[key].reshape(1, valid_y[key].shape[0], self.out_dim)
+
+                # Identify which output to use
+                ind = np.where([spk in key for spk in self.speaker_id])[0][0]
+                batch_speaker = self.speaker_id[ind]
+
+                # Run test on batch
+                for model in self.models:
+                    if model.name == batch_speaker:
+                       batch_validation_loss[batch_speaker].append(model.test_on_batch(x, y))
+
+                data_utils.drawProgressBar(i, valid_file_number-1)
+
+            # Average validation loss per epoch
+            for speaker in batch_training_loss.keys():
+                validation_loss[speaker].append(np.mean(batch_validation_loss[speaker]))
+                print('\nValidation loss %s: %.3f' % (speaker, validation_loss[speaker][-1]))
+
+        # Signal end of training to tensorboard
+        for speaker in tb_callback_dict.keys():
+            tb_callback_dict[speaker].on_train_end(None)
 
     def train_feedforward_model(self, train_x, train_y, valid_x, valid_y):
 
         # Set up callbacks
-        tb_callback = callbacks.TensorBoard(log_dir=self.tensorboard_dir, histogram_freq=1, write_graph=False,
+        tb_callback = callbacks.TensorBoard(log_dir=self.tensorboard_dir, histogram_freq=1, write_graph=True,
                                             write_images=False, batch_size=self.batch_size)
         es_callback = callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=self.stopping_patience,
                                               verbose=0, mode='auto', baseline=None,
@@ -102,7 +188,7 @@ class TrainKerasModels(kerasModels):
     def train_recurrent_model_batchsize_one(self, train_x, train_y, valid_x, valid_y):
 
         # Set up callbacks
-        tb_callback = callbacks.TensorBoard(log_dir=self.tensorboard_dir)
+        tb_callback = callbacks.TensorBoard(log_dir=self.tensorboard_dir, write_graph=True)
         es_callback = callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=self.stopping_patience,
                                               verbose=0, mode='auto', baseline=None,
                                               restore_best_weights=self.restore_best_weights)

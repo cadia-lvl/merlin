@@ -42,6 +42,8 @@ import os
 import sys
 import time
 import numpy as np
+import random
+from keras.utils import plot_model
 
 from keras_lib import configuration
 from keras_lib import data_utils
@@ -161,6 +163,9 @@ class KerasClass(object):
 
         # Create train, valid and test file lists
         self.file_id_list = data_utils.read_file_list(self.file_id_scp)
+        if cfg.shuffle_data:
+            random.seed(1)
+            random.shuffle(self.file_id_list)  # Shuffle to get random valid and test utterances
         self.train_id_list = self.file_id_list[0: train_file_number]
         self.valid_id_list = self.file_id_list[train_file_number: train_file_number + valid_file_number]
         self.test_id_list = self.file_id_list[train_file_number + valid_file_number: train_file_number + valid_file_number + test_file_number]
@@ -309,11 +314,11 @@ class KerasClass(object):
             # Data must be in an a numpy array for normalization, therefore set sequential_training to false
             print('preparing train_x, train_y from input and output feature files...')
             train_x, train_y_list, train_flen = data_utils.read_data_from_file_list_shared_2(self.speaker_id,
-                                                                                           self.inp_train_file_list,
-                                                                                           self.out_train_file_list,
-                                                                                           self.inp_dim,
-                                                                                           self.out_dim,
-                                                                                           sequential_training=False)
+                                                                                             self.inp_train_file_list,
+                                                                                             self.out_train_file_list,
+                                                                                             self.inp_dim,
+                                                                                             self.out_dim,
+                                                                                             sequential_training=False)
 
             print('computing norm stats for train_x...')
             # I have removed scaling from binary variables (discrete_dict columns are all binary)
@@ -396,21 +401,22 @@ class KerasClass(object):
         shared = sum(self.shared_layer_flag)
         if not self.sequential_training:
             # Train feedforward model
-            self.keras_models.train_feedforward_model(train_x, train_y_list, valid_x, valid_y_list)
+            self.keras_models.train_feedforward_model(train_x, train_y, valid_x, valid_y)
+            self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)
 
         elif self.sequential_training and self.batch_size == 1 and sum(self.shared_layer_flag) == 0:
             # Train recurrent model of batch size one
-            self.keras_models.train_recurrent_model_batchsize_one(train_x, train_y_list, valid_x, valid_y_list)
+            self.keras_models.train_recurrent_model_batchsize_one(train_x, train_y, valid_x, valid_y)
+            self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)
 
         elif self.sequential_training and self.batch_size == 1 and sum(self.shared_layer_flag) > 0:
-            self.keras_models.train_shared_model(train_x, train_y_list, valid_x, valid_y_list)
+            self.keras_models.train_shared_model(train_x, train_y, valid_x, valid_y)
+            self.keras_models.save_models(self.json_model_file, self.h5_model_file, self.model_params_file)
 
         elif self.sequential_training and self.stateful:
             # Train recurrent model of many batches, should it be stateful?
-            self.keras_models.train_recurrent_model(train_x, train_y_list, valid_x, valid_y_list, train_flen, training_algo=1)
-
-        #### store the model ####
-        self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)
+            self.keras_models.train_recurrent_model(train_x, train_y, valid_x, valid_y, train_flen, training_algo=1)
+            self.keras_models.save_model(self.json_model_file, self.h5_model_file, self.model_params_file)
 
     def test_keras_model(self):
 
