@@ -313,12 +313,19 @@ class KerasClass(object):
         else:  # Create the scaler objects
             # Data must be in an a numpy array for normalization, therefore set sequential_training to false
             print('preparing train_x, train_y from input and output feature files...')
-            train_x, train_y_list, train_flen = data_utils.read_data_from_file_list_shared_2(self.speaker_id,
-                                                                                             self.inp_train_file_list,
-                                                                                             self.out_train_file_list,
-                                                                                             self.inp_dim,
-                                                                                             self.out_dim,
-                                                                                             sequential_training=False)
+            if len(self.speaker_id) > 1:
+                train_x, train_y_list, train_flen = data_utils.read_data_from_file_list_shared_2(self.speaker_id,
+                                                                                                 self.inp_train_file_list,
+                                                                                                 self.out_train_file_list,
+                                                                                                 self.inp_dim,
+                                                                                                 self.out_dim,
+                                                                                                 sequential_training=False)
+            else:
+                train_x, train_y_list, train_flen = data_utils.read_data_from_file_list(self.inp_train_file_list,
+                                                                                        self.out_train_file_list,
+                                                                                        self.inp_dim,
+                                                                                        self.out_dim,
+                                                                                        sequential_training=False)
 
             print('computing norm stats for train_x...')
             # I have removed scaling from binary variables (discrete_dict columns are all binary)
@@ -335,6 +342,9 @@ class KerasClass(object):
                 index = [sum([int(num) for num in self.outdims[0:vuv_index]])]
             else:
                 index = []
+
+            if type(train_y_list) != list:
+                train_y_list = [train_y_list]
 
             self.out_scaler_list = []
             for train_y, speaker in zip(train_y_list, self.speaker_id):
@@ -378,9 +388,10 @@ class KerasClass(object):
                                                         self.out_scaler_list[i],
                                                         sequential_training=False)
         else:
+
             for i, scaler in enumerate(self.out_scaler_list):
-                train_y[i] = data_utils.norm_data(train_y, scaler, sequential_training=False)
-                valid_y[i] = data_utils.norm_data(valid_y, scaler, sequential_training=False)
+                train_y = data_utils.norm_data(train_y, scaler, sequential_training=False)
+                valid_y = data_utils.norm_data(valid_y, scaler, sequential_training=False)
 
 
         #### define the model ####

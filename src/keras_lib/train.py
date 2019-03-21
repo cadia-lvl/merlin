@@ -50,6 +50,8 @@ from keras_lib.model import kerasModels
 from keras_lib import data_utils
 from keras_lib.data_sequence import UttBatchSequence
 
+import tensorflow as tf
+
 from io_funcs.binary_io import BinaryIOCollection
 
 
@@ -83,15 +85,16 @@ class TrainKerasModels(kerasModels):
 
     def train_shared_model(self, train_x, train_y, valid_x, valid_y):
 
+        # writer = tf.summary.FileWriter(self.tensorboard_dir)
         tb_callback_dict = {speaker: None for speaker in self.speaker_id}
         for model in self.models:
             # Set up tensorboard
-            tb_callback_dict[model.name] = callbacks.TensorBoard(log_dir=self.tensorboard_dir,
+            directory = self.tensorboard_dir + '_' + model.name
+            tb_callback_dict[model.name] = callbacks.TensorBoard(log_dir=directory,
                                                                  histogram_freq=0,
                                                                  write_graph=True,
-                                                                 write_grads=True,
-                                                                 write_images=False,
-                                                                 batch_size=self.batch_size)
+                                                                 batch_size=self.batch_size,
+                                                                 update_freq='epoch')
             tb_callback_dict[model.name].set_model(model)
 
         # Need to randomize batches
@@ -105,12 +108,14 @@ class TrainKerasModels(kerasModels):
         valid_file_number = len(valid_x)
         training_loss = {speaker: [] for speaker in self.speaker_id}
         validation_loss = {speaker: [] for speaker in self.speaker_id}
+
+        min_valid_loss = [0, float('inf')]
         for epoch_num in range(self.num_of_epochs):
 
             print(('\nEpoch: %d/%d ' %(epoch_num+1, self.num_of_epochs)))
             batch_training_loss = {speaker: [] for speaker in self.speaker_id}
             batch_validation_loss = {speaker: [] for speaker in self.speaker_id}
-            batch_count = {speaker: 0 for speaker in self.speaker_id}
+            # batch_count = {speaker: 0 for speaker in self.speaker_id}
             for i in range(train_file_number):
 
                 key = train_id_list[i]
@@ -125,9 +130,6 @@ class TrainKerasModels(kerasModels):
                 for model in self.models:
                     if model.name == batch_speaker:
                         batch_training_loss[batch_speaker].append(model.train_on_batch(x, y))
-                        tb_callback_dict[batch_speaker].on_batch_end(batch_count[batch_speaker],
-                                                                     {'loss': batch_training_loss[batch_speaker][-1]})
-                        batch_count[batch_speaker] += 1
 
                 data_utils.drawProgressBar(i, train_file_number-1)
 
@@ -135,7 +137,6 @@ class TrainKerasModels(kerasModels):
             for speaker in batch_training_loss.keys():
                 training_loss[speaker].append(np.mean(batch_training_loss[speaker]))
                 print('\nTraining loss %s: %.3f' % (speaker, training_loss[speaker][-1]))
-                tb_callback_dict[speaker].on_epoch_end(epoch_num, {'loss': training_loss[speaker][-1]})
 
             # for each epoch, run validation set
             for i in range(valid_file_number):
@@ -158,6 +159,22 @@ class TrainKerasModels(kerasModels):
             for speaker in batch_training_loss.keys():
                 validation_loss[speaker].append(np.mean(batch_validation_loss[speaker]))
                 print('\nValidation loss %s: %.3f' % (speaker, validation_loss[speaker][-1]))
+
+            # Update tensorboard object
+            for speaker in batch_training_loss.keys():
+                tb_callback_dict[speaker].on_epoch_end(epoch_num, logs={'loss': training_loss[speaker][-1],
+                                                                'valid_loss': validation_loss[speaker][-1]})
+
+            # Update min loss
+            if min_valid_loss[1] > validation_loss[speaker][-1]:
+                min_valid_loss[0] = epoch_num
+                min_valid_loss[1] = validation_loss[speaker][-1]
+
+            # Check if early stop - Not sure best way to implement for multiple models
+            # if epoch_num - min_valid_loss[0] > self.stopping_patience:
+            #     print('Stopping early')
+            #     tb_callback_dict[speaker].on_train_end(None)
+            #     break
 
         # Signal end of training to tensorboard
         for speaker in tb_callback_dict.keys():
