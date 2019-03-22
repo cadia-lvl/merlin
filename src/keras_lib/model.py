@@ -126,9 +126,8 @@ class kerasModels(object):
                           kernel_initializer="normal",
                           input_shape=(None, input_size))(x)
 
-            # Add dropout between every layer except after last
-            if i < self.n_layers-2:
-                x = Dropout(self.dropout_rate)(x)
+        # Add dropout between shared layers and speaker layer
+        x = Dropout(self.dropout_rate)(x)
 
         # Final layer is created for each speaker and models instantiated individually
         last_hidden_list = []
