@@ -44,7 +44,7 @@ import os
 import numpy as np
 
 from keras.models import Sequential, Model, model_from_json
-from keras.layers import Dense, SimpleRNN, GRU, LSTM, Dropout, Input
+from keras.layers import Dense, SimpleRNN, GRU, LSTM, CuDNNLSTM, Dropout, Input
 from keras.regularizers import l1_l2
 from keras.utils import multi_gpu_model, plot_model
 
@@ -120,6 +120,10 @@ class kerasModels(object):
                          input_shape=(None, input_size),
                          return_sequences=True,
                          go_backwards=True)(x)
+            elif self.hidden_layer_type[i] == 'CuDNNLSTM':
+                x = CuDNNLSTM(units=self.hidden_layer_size[i],
+                              input_shape=(None, input_size),
+                              return_sequences=True)(x)
             else:
                 x = Dense(units=self.hidden_layer_size[i],
                           activation=self.hidden_layer_type[i],
@@ -146,6 +150,10 @@ class kerasModels(object):
                 last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
                                              input_shape=(None, self.hidden_layer_size[-2]),
                                              return_sequences=True)(x))
+            elif self.hidden_layer_type[-1] == 'CuDNNLSTM':
+                last_hidden_list.append(CuDNNLSTM(units=self.hidden_layer_size[-1],
+                                                  input_shape=(None, self.hidden_layer_size[-2]),
+                                                  return_sequences=True)(x))
             elif self.hidden_layer_type[-1] == 'blstm':
                 last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
                                              input_shape=(None, self.hidden_layer_size[-2]),
