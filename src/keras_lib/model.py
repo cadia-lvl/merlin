@@ -120,7 +120,7 @@ class kerasModels(object):
                          input_shape=(None, input_size),
                          return_sequences=True,
                          go_backwards=True)(x)
-            elif self.hidden_layer_type[i] == 'CuDNNLSTM':
+            elif self.hidden_layer_type[i] == 'cudnnlstm':
                 x = CuDNNLSTM(units=self.hidden_layer_size[i],
                               input_shape=(None, input_size),
                               return_sequences=True)(x)
@@ -148,9 +148,8 @@ class kerasModels(object):
                                             return_sequences=True)(x))
             elif self.hidden_layer_type[-1] == 'lstm':
                 last_hidden_list.append(LSTM(units=self.hidden_layer_size[-1],
-                                             input_shape=(None, self.hidden_layer_size[-2]),
                                              return_sequences=True)(x))
-            elif self.hidden_layer_type[-1] == 'CuDNNLSTM':
+            elif self.hidden_layer_type[-1] == 'cudnnlstm':
                 last_hidden_list.append(CuDNNLSTM(units=self.hidden_layer_size[-1],
                                                   input_shape=(None, self.hidden_layer_size[-2]),
                                                   return_sequences=True)(x))
